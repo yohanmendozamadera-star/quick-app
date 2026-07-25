@@ -8,7 +8,7 @@ import {
   normalizeReconciliationInput,
 } from "@/lib/validations/reconciliation";
 import { parseBulkReconciliationsText } from "@/lib/reconciliations/bulk-parse";
-import { getCities, getLoadTypes } from "@/lib/catalog/queries";
+import { getLoadTypes, getCedis } from "@/lib/catalog/queries";
 import { getMatchingReconciliationIds } from "@/lib/reconciliations/queries";
 import type { ReconciliationsFilters } from "@/lib/reconciliations/types";
 
@@ -154,8 +154,8 @@ export async function bulkCreateReconciliations(clientId: string, rawText: strin
     return { success: false, message: "Selecciona el cliente para este lote." };
   }
 
-  const [cities, loadTypes] = await Promise.all([getCities(), getLoadTypes()]);
-  const parsedRows = parseBulkReconciliationsText(rawText, cities, loadTypes);
+  const [loadTypes, cedis] = await Promise.all([getLoadTypes(), getCedis()]);
+  const parsedRows = parseBulkReconciliationsText(rawText, loadTypes, cedis);
 
   if (parsedRows.length === 0) {
     return { success: false, message: "No se encontró ningún dato para importar." };

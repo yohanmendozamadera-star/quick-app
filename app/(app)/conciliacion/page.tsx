@@ -1,7 +1,7 @@
 import { Download } from "lucide-react";
 import { getCurrentUser, can } from "@/lib/permissions";
 import { getReconciliations } from "@/lib/reconciliations/queries";
-import { getClients, getCities, getLoadTypes } from "@/lib/catalog/queries";
+import { getClients, getCities, getLoadTypes, getCedis } from "@/lib/catalog/queries";
 import { DEFAULT_PAGE_SIZE, type ReconciliationsSort } from "@/lib/reconciliations/types";
 import { ModulePlaceholder } from "@/components/layout/module-placeholder";
 import { ReconciliationsFilters } from "@/components/conciliacion/reconciliations-filters";
@@ -65,11 +65,12 @@ export default async function ConciliacionPage({
     cityId: str(sp, "city"),
   };
 
-  const [{ rows, count, totals }, clients, cities, loadTypes] = await Promise.all([
+  const [{ rows, count, totals }, clients, cities, loadTypes, cedis] = await Promise.all([
     getReconciliations({ filters, sort, page, pageSize }),
     getClients(),
     getCities(),
     getLoadTypes(),
+    getCedis(),
   ]);
 
   const canCreate = can(permissions, "conciliacion.create");
@@ -106,7 +107,7 @@ export default async function ConciliacionPage({
               Descargar Excel
             </a>
           )}
-          {canImport && <BulkImportDialog clients={clients} cities={cities} loadTypes={loadTypes} />}
+          {canImport && <BulkImportDialog clients={clients} loadTypes={loadTypes} cedis={cedis} />}
           {canCreate && <ReconciliationFormDialog clients={clients} cities={cities} loadTypes={loadTypes} />}
         </div>
       </div>

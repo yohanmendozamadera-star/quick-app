@@ -1,17 +1,14 @@
 import { parseDdMmYyyy } from "@/lib/format";
-import type { CatalogOption } from "@/lib/catalog/queries";
+import type { CatalogOption, CediOption } from "@/lib/catalog/queries";
 
 // Orden de columnas del texto pegado (separado por tabulaciones). Igual que
-// Recolección, incluyendo el tipo de carga ("Tipo de servicio" en tu
-// planilla) en la misma posición — si se deja por fuera, todo lo que viene
-// después (documento, recaudo) se corre una columna.
+// Recolección: Ciudad y Nombre CEDI no se pegan, se calculan solos a partir
+// del Código CEDI contra Configuraciones > Droguerías.
 export const BULK_COLUMN_LABELS = [
   "Número del servicio",
   "Nombre del cliente",
   "Novedad",
-  "Ciudad",
   "Código CEDI",
-  "Nombre CEDI",
   "Dirección del servicio",
   "Fecha del servicio",
   "Tipo de servicio",
@@ -21,9 +18,7 @@ export const BULK_COLUMN_LABELS = [
 
 export const BULK_REQUIRED_LABELS = [
   "Número del servicio",
-  "Ciudad",
   "Código CEDI",
-  "Nombre CEDI",
   "Fecha del servicio",
   "Recaudo",
 ];
@@ -38,6 +33,7 @@ export type ParsedBulkReconciliation = {
   city_id: string | null;
   cedi_code: string | null;
   cedi_name: string | null;
+  cediResolved: boolean;
   service_address: string | null;
   service_date_input: string;
   service_date: string | null;
@@ -55,6 +51,12 @@ function findByName(options: CatalogOption[], name: string | undefined) {
   return options.find((o) => o.name.trim().toLocaleLowerCase("es-CO") === normalized) ?? null;
 }
 
+function findCediByCode(cedis: CediOption[], code: string | null) {
+  if (!code) return null;
+  const normalized = code.toLocaleLowerCase("es-CO");
+  return cedis.find((c) => c.code.toLocaleLowerCase("es-CO") === normalized) ?? null;
+}
+
 function toNullable(value: string | undefined) {
   const trimmed = value?.trim();
   return trimmed && trimmed.length > 0 ? trimmed : null;
@@ -70,8 +72,8 @@ function parseAmount(value: string | undefined) {
 
 export function parseBulkReconciliationsText(
   text: string,
-  cities: CatalogOption[],
   loadTypes: CatalogOption[],
+  cedis: CediOption[],
 ): ParsedBulkReconciliation[] {
   const lines = text
     .split(/\r?\n/)
@@ -86,9 +88,7 @@ export function parseBulkReconciliationsText(
       serviceNumberRaw,
       clientNameRaw,
       novedadRaw,
-      cityInput,
       cediCodeRaw,
-      cediNameRaw,
       addressRaw,
       dateInput,
       loadTypeInput,
@@ -105,15 +105,28 @@ export function parseBulkReconciliationsText(
     if (service_number) seenServiceNumbers.add(service_number);
     if (duplicateInPaste) errors.push("Número del servicio repetido en este pegado");
 
-    const city = findByName(cities, cityInput);
-    if (!cityInput) errors.push("Ciudad vacía");
-    else if (!city) errors.push(`Ciudad no reconocida: "${cityInput}"`);
-
     const cedi_code = toNullable(cediCodeRaw);
     if (!cedi_code) errors.push("Código CEDI vacío");
 
-    const cedi_name = toNullable(cediNameRaw);
-    if (!cedi_name) errors.push("Nombre CEDI vacío");
+    // Ciudad y Nombre CEDI no se pegan: se calculan solos a partir del
+    // código contra Configuraciones > Droguerías. Si el código no está
+    // registrado ahí, la fila queda con error.
+    const cediMatch = findCediByCode(cedis, cedi_code);
+    const cediResolved = cediMatch !== null;
+
+    let city_id: string | null = null;
+    let city_input = "";
+    let cedi_name: string | null = null;
+
+    if (cediMatch) {
+      city_id = cediMatch.city_id;
+      city_input = cediMatch.city?.name ?? "";
+      cedi_name = cediMatch.name;
+    } else if (cedi_code) {
+      errors.push(
+        `Código CEDI "${cedi_code}" no registrado en Configuraciones > Droguerías. Regístralo antes de cargar.`,
+      );
+    }
 
     const service_date = parseDdMmYyyy(dateInput);
     if (!dateInput) errors.push("Fecha del servicio vacía");
@@ -133,10 +146,11 @@ export function parseBulkReconciliationsText(
       service_number,
       client_name: toNullable(clientNameRaw),
       novedad: toNullable(novedadRaw),
-      city_input: cityInput ?? "",
-      city_id: city?.id ?? null,
+      city_input,
+      city_id,
       cedi_code,
       cedi_name,
+      cediResolved,
       service_address: toNullable(addressRaw),
       service_date_input: dateInput ?? "",
       service_date,

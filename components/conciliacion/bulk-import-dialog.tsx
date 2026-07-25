@@ -9,7 +9,7 @@ import {
   BULK_REQUIRED_LABELS,
 } from "@/lib/reconciliations/bulk-parse";
 import { bulkCreateReconciliations, type BulkImportResult } from "@/app/(app)/conciliacion/actions";
-import type { CatalogOption } from "@/lib/catalog/queries";
+import type { CatalogOption, CediOption } from "@/lib/catalog/queries";
 import { formatCurrency } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -28,12 +28,12 @@ type Step = "input" | "preview" | "result";
 
 export function BulkImportDialog({
   clients,
-  cities,
   loadTypes,
+  cedis,
 }: {
   clients: CatalogOption[];
-  cities: CatalogOption[];
   loadTypes: CatalogOption[];
+  cedis: CediOption[];
 }) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<Step>("input");
@@ -43,8 +43,8 @@ export function BulkImportDialog({
   const [result, setResult] = useState<Extract<BulkImportResult, { success: true }> | null>(null);
 
   const parsedRows = useMemo(
-    () => (rawText.trim() ? parseBulkReconciliationsText(rawText, cities, loadTypes) : []),
-    [rawText, cities, loadTypes],
+    () => (rawText.trim() ? parseBulkReconciliationsText(rawText, loadTypes, cedis) : []),
+    [rawText, loadTypes, cedis],
   );
 
   const validRows = parsedRows.filter((r) => r.errors.length === 0);
@@ -136,6 +136,11 @@ export function BulkImportDialog({
                 Obligatorias: <span className="font-medium text-foreground">{BULK_REQUIRED_LABELS.join(", ")}</span>.
                 Las demás pueden ir vacías. La fecha de conciliación se asigna automáticamente (hoy).
               </p>
+              <p className="mt-1">
+                La Ciudad y el Nombre CEDI no se pegan: se calculan solos a partir del Código CEDI contra
+                Configuraciones &gt; Droguerías. Si el código no está registrado ahí, regístralo antes de
+                cargar el archivo.
+              </p>
             </div>
           </div>
         )}
@@ -173,7 +178,10 @@ export function BulkImportDialog({
                     <tr key={row.rowNumber} className={row.errors.length > 0 ? "bg-destructive/5" : undefined}>
                       <td className="px-2 py-1.5 text-muted-foreground">{row.rowNumber}</td>
                       <td className="px-2 py-1.5 font-medium">{row.service_number || "—"}</td>
-                      <td className="px-2 py-1.5">{row.city_input || "—"}</td>
+                      <td className="px-2 py-1.5">
+                        {row.city_input || "—"}
+                        {row.cediResolved && <span className="ml-1 text-emerald-700" title="Calculado desde Droguerías">✓</span>}
+                      </td>
                       <td className="px-2 py-1.5">{row.cedi_code || "—"}</td>
                       <td className="px-2 py-1.5">{row.service_date_input || "—"}</td>
                       <td className="px-2 py-1.5">{row.load_type_input || "—"}</td>
