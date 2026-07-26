@@ -135,6 +135,18 @@ export function AvailabilitiesFilters({
 
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-sm font-medium text-muted-foreground">Estado</span>
+        <button
+          type="button"
+          onClick={() => updateParam("status", "")}
+          aria-pressed={!searchParams.get("status")}
+          className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+            !searchParams.get("status")
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-input text-muted-foreground hover:bg-muted"
+          }`}
+        >
+          Todos
+        </button>
         {STATUS_OPTIONS.map((s) => {
           const active = searchParams.get("status") === s.value;
           return (
