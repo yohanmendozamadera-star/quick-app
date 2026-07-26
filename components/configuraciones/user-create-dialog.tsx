@@ -5,9 +5,11 @@ import { toast } from "sonner";
 import { Loader2, Plus } from "lucide-react";
 import { createUserAccount } from "@/app/(app)/configuraciones/users-actions";
 import type { RoleRow } from "@/lib/users/queries";
+import type { CatalogOption } from "@/lib/catalog/queries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -18,19 +20,21 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-export function UserCreateDialog({ roles }: { roles: RoleRow[] }) {
+export function UserCreateDialog({ roles, cities }: { roles: RoleRow[]; cities: CatalogOption[] }) {
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [roleId, setRoleId] = useState("");
+  const [cityIds, setCityIds] = useState<Set<string>>(new Set());
 
   const reset = () => {
     setFullName("");
     setEmail("");
     setPassword("");
     setRoleId("");
+    setCityIds(new Set());
   };
 
   const onOpenChange = (value: boolean) => {
@@ -38,9 +42,24 @@ export function UserCreateDialog({ roles }: { roles: RoleRow[] }) {
     if (value) reset();
   };
 
+  const toggleCity = (id: string) => {
+    setCityIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   const handleSubmit = async () => {
     setSubmitting(true);
-    const result = await createUserAccount({ fullName, email, password, roleId });
+    const result = await createUserAccount({
+      fullName,
+      email,
+      password,
+      roleId,
+      cityIds: Array.from(cityIds),
+    });
     setSubmitting(false);
 
     if (!result.success) {
@@ -101,6 +120,21 @@ export function UserCreateDialog({ roles }: { roles: RoleRow[] }) {
                 </option>
               ))}
             </select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Ciudades asignadas</Label>
+            <p className="text-xs text-muted-foreground">
+              Deja vacío para que vea datos de todas las ciudades. Si marcas una o más, solo verá lo de esas
+              ciudades (útil para Coordinadores).
+            </p>
+            <div className="grid grid-cols-2 gap-1.5 rounded-md border p-2">
+              {cities.map((c) => (
+                <label key={c.id} className="flex items-center gap-1.5 text-sm">
+                  <Checkbox checked={cityIds.has(c.id)} onCheckedChange={() => toggleCity(c.id)} />
+                  {c.name}
+                </label>
+              ))}
+            </div>
           </div>
         </div>
 

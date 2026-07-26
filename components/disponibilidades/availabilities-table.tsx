@@ -51,6 +51,7 @@ export function AvailabilitiesTable({
   canEdit,
   canDelete,
   canApprove,
+  canAuthorize,
   canViewAudit,
   clients,
   serviceTypes,
@@ -65,6 +66,7 @@ export function AvailabilitiesTable({
   canEdit: boolean;
   canDelete: boolean;
   canApprove: boolean;
+  canAuthorize: boolean;
   canViewAudit: boolean;
   clients: CatalogOption[];
   serviceTypes: CatalogOption[];
@@ -125,6 +127,7 @@ export function AvailabilitiesTable({
   };
 
   const showActions = canEdit || canDelete || canViewAudit;
+  const canChangeStatus = canApprove || canAuthorize;
 
   return (
     <div className="rounded-lg border bg-background">
@@ -149,11 +152,12 @@ export function AvailabilitiesTable({
           )}
 
           <div className="ml-auto flex flex-wrap gap-2">
-            {canEdit && (
+            {canChangeStatus && (
               <StatusChangeDialog
                 trigger={<Button variant="outline" size="sm">Cambiar estado</Button>}
                 ids={selectedIds}
                 canApprove={canApprove}
+                canAuthorize={canAuthorize}
                 onDone={clearSelection}
               />
             )}
@@ -246,7 +250,7 @@ export function AvailabilitiesTable({
                     <ResizableCell value={row.observation ?? "—"} />
                   </td>
                   <td className="px-3 py-2.5">
-                    {canEdit ? (
+                    {canChangeStatus ? (
                       <StatusChangeDialog
                         trigger={
                           <button type="button" className="cursor-pointer">
@@ -256,6 +260,7 @@ export function AvailabilitiesTable({
                         ids={[row.id]}
                         currentStatus={row.status}
                         canApprove={canApprove}
+                        canAuthorize={canAuthorize}
                       />
                     ) : (
                       <StatusBadge status={row.status} />

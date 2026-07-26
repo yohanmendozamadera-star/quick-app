@@ -127,7 +127,9 @@ export async function duplicateAvailability(id: string): Promise<DuplicateResult
 
 export async function setAvailabilityStatus(ids: string[], status: AvailabilityStatus): Promise<BulkActionResult> {
   const user = await getCurrentUser();
-  if (!user || !can(user.permissions, "disponibilidades.edit")) {
+  const canApprove = can(user?.permissions ?? [], "disponibilidades.approve");
+  const canAuthorize = can(user?.permissions ?? [], "disponibilidades.authorize");
+  if (!user || (!canApprove && !canAuthorize)) {
     return { success: false, message: "No tienes permiso para cambiar el estado." };
   }
   if (ids.length === 0) {

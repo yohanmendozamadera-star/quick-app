@@ -4,12 +4,24 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { updateUserRole, setUserActive } from "@/app/(app)/configuraciones/users-actions";
 import type { ProfileRow, RoleRow } from "@/lib/users/queries";
+import type { CatalogOption } from "@/lib/catalog/queries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { UserCreateDialog } from "@/components/configuraciones/user-create-dialog";
 import { ResetPasswordDialog } from "@/components/configuraciones/reset-password-dialog";
+import { UserCitiesDialog } from "@/components/configuraciones/user-cities-dialog";
 
-export function UsersManager({ profiles, roles }: { profiles: ProfileRow[]; roles: RoleRow[] }) {
+export function UsersManager({
+  profiles,
+  roles,
+  cities,
+  profileCityMap,
+}: {
+  profiles: ProfileRow[];
+  roles: RoleRow[];
+  cities: CatalogOption[];
+  profileCityMap: Record<string, string[]>;
+}) {
   const [search, setSearch] = useState("");
   const [savingId, setSavingId] = useState<string | null>(null);
 
@@ -55,7 +67,7 @@ export function UsersManager({ profiles, roles }: { profiles: ProfileRow[]; role
           className="max-w-xs"
         />
         <div className="ml-auto">
-          <UserCreateDialog roles={roles} />
+          <UserCreateDialog roles={roles} cities={cities} />
         </div>
       </div>
 
@@ -100,6 +112,12 @@ export function UsersManager({ profiles, roles }: { profiles: ProfileRow[]; role
                   <td className="px-3 py-2">{profile.is_active ? "Activo" : "Inactivo"}</td>
                   <td className="px-3 py-2">
                     <div className="flex justify-end gap-1">
+                      <UserCitiesDialog
+                        userId={profile.id}
+                        userLabel={`${profile.full_name} · ${profile.email}`}
+                        cities={cities}
+                        assignedCityIds={profileCityMap[profile.id] ?? []}
+                      />
                       <ResetPasswordDialog userId={profile.id} userLabel={`${profile.full_name} · ${profile.email}`} />
                       <Button
                         type="button"

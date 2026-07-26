@@ -123,6 +123,7 @@ export default async function DisponibilidadesPage({
         canEdit={can(permissions, "disponibilidades.edit")}
         canDelete={can(permissions, "disponibilidades.delete")}
         canApprove={can(permissions, "disponibilidades.approve")}
+        canAuthorize={can(permissions, "disponibilidades.authorize")}
         canViewAudit={can(permissions, "audit.view")}
         clients={clients}
         serviceTypes={serviceTypes}

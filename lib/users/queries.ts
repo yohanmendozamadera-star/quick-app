@@ -59,3 +59,18 @@ export const getAllProfiles = cache(async (): Promise<ProfileRow[]> => {
     .order("full_name");
   return (data ?? []) as unknown as ProfileRow[];
 });
+
+/**
+ * Ciudades asignadas a cada usuario, agrupadas por profile_id. Un usuario
+ * sin ninguna fila aquí no tiene restricción de ciudad (ve todo).
+ */
+export const getProfileCityMap = cache(async (): Promise<Record<string, string[]>> => {
+  const supabase = await createClient();
+  const { data } = await supabase.from("profile_cities").select("profile_id, city_id");
+
+  const map: Record<string, string[]> = {};
+  for (const row of (data ?? []) as { profile_id: string; city_id: string }[]) {
+    (map[row.profile_id] ??= []).push(row.city_id);
+  }
+  return map;
+});

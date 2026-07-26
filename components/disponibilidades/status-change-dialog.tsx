@@ -16,17 +16,26 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
+// Aprobar exige "approve" o "authorize" (Líder o Jefe). Autorizar y revertir
+// a Registrado exigen "authorize" (solo Jefe).
+function isEnabled(status: AvailabilityStatus, canApprove: boolean, canAuthorize: boolean) {
+  if (status === "aprobado") return canApprove || canAuthorize;
+  return canAuthorize;
+}
+
 export function StatusChangeDialog({
   trigger,
   ids,
   currentStatus,
   canApprove,
+  canAuthorize,
   onDone,
 }: {
   trigger: ReactElement;
   ids: string[];
   currentStatus?: AvailabilityStatus;
   canApprove: boolean;
+  canAuthorize: boolean;
   onDone?: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -38,7 +47,7 @@ export function StatusChangeDialog({
     if (value) setTarget(currentStatus ?? "registrado");
   };
 
-  const canConfirm = canApprove && target !== currentStatus;
+  const canConfirm = target !== currentStatus && isEnabled(target, canApprove, canAuthorize);
 
   const handleConfirm = async () => {
     setSubmitting(true);
@@ -64,7 +73,7 @@ export function StatusChangeDialog({
           <DialogDescription>
             Se aplicará a {ids.length} registro{ids.length === 1 ? "" : "s"} seleccionado
             {ids.length === 1 ? "" : "s"}.
-            {!canApprove && " Solo un Líder puede aprobar o autorizar."}
+            {!canAuthorize && " Solo un Jefe puede autorizar o revertir a Registrado."}
           </DialogDescription>
         </DialogHeader>
 
@@ -75,7 +84,7 @@ export function StatusChangeDialog({
               type="button"
               variant={target === s.value ? "default" : "outline"}
               size="sm"
-              disabled={!canApprove && s.value !== "registrado"}
+              disabled={!isEnabled(s.value, canApprove, canAuthorize)}
               onClick={() => setTarget(s.value)}
             >
               {s.label}

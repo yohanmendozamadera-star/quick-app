@@ -88,6 +88,7 @@ export async function createUserAccount(input: {
   email: string;
   password: string;
   roleId: string;
+  cityIds?: string[];
 }): Promise<ActionResult> {
   const user = await requireUsersManage();
   if (!user) return { success: false, message: "No tienes permiso para administrar usuarios." };
@@ -122,6 +123,36 @@ export async function createUserAccount(input: {
 
   if (profileError) {
     return { success: false, message: profileError.message };
+  }
+
+  if (input.cityIds?.length) {
+    const { error: citiesError } = await supabase
+      .from("profile_cities")
+      .insert(input.cityIds.map((cityId) => ({ profile_id: data.user.id, city_id: cityId })));
+    if (citiesError) {
+      return { success: false, message: citiesError.message };
+    }
+  }
+
+  revalidate();
+  return { success: true };
+}
+
+/** Reemplaza el conjunto completo de ciudades asignadas a un usuario. Vacío = sin restricción (ve todo). */
+export async function setUserCities(userId: string, cityIds: string[]): Promise<ActionResult> {
+  const user = await requireUsersManage();
+  if (!user) return { success: false, message: "No tienes permiso para administrar usuarios." };
+
+  const supabase = await createClient();
+
+  const { error: deleteError } = await supabase.from("profile_cities").delete().eq("profile_id", userId);
+  if (deleteError) return { success: false, message: deleteError.message };
+
+  if (cityIds.length > 0) {
+    const { error: insertError } = await supabase
+      .from("profile_cities")
+      .insert(cityIds.map((cityId) => ({ profile_id: userId, city_id: cityId })));
+    if (insertError) return { success: false, message: insertError.message };
   }
 
   revalidate();

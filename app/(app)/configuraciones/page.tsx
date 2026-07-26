@@ -8,7 +8,13 @@ import {
   getAllChargeDescriptions,
   getAllClients,
 } from "@/lib/catalog/queries";
-import { getAllRoles, getAllPermissions, getRolePermissionMap, getAllProfiles } from "@/lib/users/queries";
+import {
+  getAllRoles,
+  getAllPermissions,
+  getRolePermissionMap,
+  getAllProfiles,
+  getProfileCityMap,
+} from "@/lib/users/queries";
 import { ModulePlaceholder } from "@/components/layout/module-placeholder";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CedisManager } from "@/components/configuraciones/cedis-manager";
@@ -33,20 +39,33 @@ export default async function ConfiguracionesPage() {
     );
   }
 
-  const [cedis, cities, coordinators, cenlogs, transportTypes, chargeDescriptions, clients, roles, allPermissions, rolePermissionMap, profiles] =
-    await Promise.all([
-      getAllCedis(),
-      getAllCities(),
-      getAllCoordinators(),
-      getAllCenlogs(),
-      getAllTransportTypes(),
-      getAllChargeDescriptions(),
-      getAllClients(),
-      canManageUsers ? getAllRoles() : Promise.resolve([]),
-      canManageUsers ? getAllPermissions() : Promise.resolve([]),
-      canManageUsers ? getRolePermissionMap() : Promise.resolve({}),
-      canManageUsers ? getAllProfiles() : Promise.resolve([]),
-    ]);
+  const [
+    cedis,
+    cities,
+    coordinators,
+    cenlogs,
+    transportTypes,
+    chargeDescriptions,
+    clients,
+    roles,
+    allPermissions,
+    rolePermissionMap,
+    profiles,
+    profileCityMap,
+  ] = await Promise.all([
+    getAllCedis(),
+    getAllCities(),
+    getAllCoordinators(),
+    getAllCenlogs(),
+    getAllTransportTypes(),
+    getAllChargeDescriptions(),
+    getAllClients(),
+    canManageUsers ? getAllRoles() : Promise.resolve([]),
+    canManageUsers ? getAllPermissions() : Promise.resolve([]),
+    canManageUsers ? getRolePermissionMap() : Promise.resolve({}),
+    canManageUsers ? getAllProfiles() : Promise.resolve([]),
+    canManageUsers ? getProfileCityMap() : Promise.resolve({}),
+  ]);
 
   const defaultTab = canManageConfig ? "droguerias" : "roles";
 
@@ -115,7 +134,7 @@ export default async function ConfiguracionesPage() {
             </TabsContent>
 
             <TabsContent value="usuarios" className="pt-4">
-              <UsersManager profiles={profiles} roles={roles} />
+              <UsersManager profiles={profiles} roles={roles} cities={cities} profileCityMap={profileCityMap} />
             </TabsContent>
           </>
         )}
