@@ -6,7 +6,9 @@ import { ModulePlaceholder } from "@/components/layout/module-placeholder";
 import { OperacionFilters } from "@/components/operacion/operacion-filters";
 import { OperacionTable } from "@/components/operacion/operacion-table";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { AlertTriangle, Download } from "lucide-react";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -45,11 +47,26 @@ export default async function OperacionPage({
     getVisibleCities(),
   ]);
 
+  const exportParams = new URLSearchParams();
+  exportParams.set("from", dateFrom);
+  exportParams.set("to", dateTo);
+  if (clientId) exportParams.set("client", clientId);
+
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight">Operación</h1>
-        <p className="text-sm text-muted-foreground">Resumen consolidado por ciudad</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Operación</h1>
+          <p className="text-sm text-muted-foreground">Resumen consolidado por ciudad</p>
+        </div>
+
+        <a
+          href={`/operacion/export?${exportParams.toString()}`}
+          className={cn(buttonVariants({ variant: "outline" }), "gap-1.5")}
+        >
+          <Download className="size-4" />
+          Descargar Excel
+        </a>
       </div>
 
       <OperacionFilters clients={clients} />
