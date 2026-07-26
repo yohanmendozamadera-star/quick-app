@@ -27,9 +27,10 @@ export function OperacionTable({
       acc.noConciliados += row.noConciliados;
       acc.tipoServicio += row.tipoServicio;
       acc.disponibilidad += row.disponibilidad;
+      acc.adicionales += row.adicionales;
       return acc;
     },
-    { recoleccion: 0, noConciliados: 0, tipoServicio: 0, disponibilidad: 0 },
+    { recoleccion: 0, noConciliados: 0, tipoServicio: 0, disponibilidad: 0, adicionales: 0 },
   );
 
   const hasData = cityRows.length > 0;
@@ -45,12 +46,13 @@ export function OperacionTable({
             <th className="px-3 py-2.5">No conciliados</th>
             <th className="px-3 py-2.5">Tipo Servicio</th>
             <th className="px-3 py-2.5">Disponibilidad</th>
+            <th className="px-3 py-2.5">Adicionales</th>
           </tr>
         </thead>
         <tbody className="divide-y">
           {!hasData && (
             <tr>
-              <td colSpan={6} className="px-3 py-10 text-center text-muted-foreground">
+              <td colSpan={7} className="px-3 py-10 text-center text-muted-foreground">
                 No hay operación registrada en este rango de fechas.
               </td>
             </tr>
@@ -77,6 +79,9 @@ export function OperacionTable({
                 <td className="px-3 py-2.5 font-semibold">
                   <Cell value={totals.disponibilidad} />
                 </td>
+                <td className="px-3 py-2.5 font-semibold">
+                  <Cell value={totals.adicionales} />
+                </td>
               </tr>
               {expanded &&
                 cityRows.map((row) => (
@@ -94,6 +99,9 @@ export function OperacionTable({
                     </td>
                     <td className="px-3 py-2.5">
                       <Cell value={row.disponibilidad} />
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <Cell value={row.adicionales} />
                     </td>
                   </tr>
                 ))}

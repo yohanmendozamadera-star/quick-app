@@ -39,9 +39,10 @@ export async function GET(request: Request) {
       acc.noConciliados += row.noConciliados;
       acc.tipoServicio += row.tipoServicio;
       acc.disponibilidad += row.disponibilidad;
+      acc.adicionales += row.adicionales;
       return acc;
     },
-    { recoleccion: 0, noConciliados: 0, tipoServicio: 0, disponibilidad: 0 },
+    { recoleccion: 0, noConciliados: 0, tipoServicio: 0, disponibilidad: 0, adicionales: 0 },
   );
 
   const workbook = new ExcelJS.Workbook();
@@ -53,9 +54,10 @@ export async function GET(request: Request) {
     { header: "No conciliados", key: "noConciliados", width: 16 },
     { header: "Tipo Servicio", key: "tipoServicio", width: 16 },
     { header: "Disponibilidad", key: "disponibilidad", width: 16 },
+    { header: "Adicionales", key: "adicionales", width: 16 },
   ];
   dataSheet.getRow(1).font = { bold: true };
-  dataSheet.autoFilter = { from: "A1", to: "E1" };
+  dataSheet.autoFilter = { from: "A1", to: "F1" };
 
   const totalRow = dataSheet.addRow({
     city: "Consolidado",
@@ -63,6 +65,7 @@ export async function GET(request: Request) {
     noConciliados: totals.noConciliados,
     tipoServicio: totals.tipoServicio,
     disponibilidad: totals.disponibilidad,
+    adicionales: totals.adicionales,
   });
   totalRow.font = { bold: true };
 
@@ -73,6 +76,7 @@ export async function GET(request: Request) {
       noConciliados: row.noConciliados,
       tipoServicio: row.tipoServicio,
       disponibilidad: row.disponibilidad,
+      adicionales: row.adicionales,
     });
   }
 

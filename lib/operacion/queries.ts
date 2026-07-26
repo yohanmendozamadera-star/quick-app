@@ -16,12 +16,14 @@ export async function getOperacionResumen(filters: OperacionFilters) {
     no_conciliados_count: number;
     tipo_servicio_count: number;
     disponibilidad_count: number;
+    adicionales_count: number;
   }[]).map((r) => ({
     cityId: r.city_id,
     recoleccion: Number(r.recoleccion_count ?? 0),
     noConciliados: Number(r.no_conciliados_count ?? 0),
     tipoServicio: Number(r.tipo_servicio_count ?? 0),
     disponibilidad: Number(r.disponibilidad_count ?? 0),
+    adicionales: Number(r.adicionales_count ?? 0),
   }));
 
   return { rows, error };

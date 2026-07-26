@@ -4,6 +4,7 @@ export type OperacionCityRow = {
   noConciliados: number;
   tipoServicio: number;
   disponibilidad: number;
+  adicionales: number;
 };
 
 export type OperacionFilters = {
