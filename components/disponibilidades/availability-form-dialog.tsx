@@ -26,6 +26,7 @@ import {
 type Props = {
   clients: CatalogOption[];
   serviceTypes: CatalogOption[];
+  cities: CatalogOption[];
   availability?: AvailabilityRow;
 };
 
@@ -33,6 +34,7 @@ function toFormValues(availability?: AvailabilityRow): AvailabilityFormValues {
   return {
     client_id: availability?.client_id ?? "",
     service_type_id: availability?.service_type_id ?? "",
+    city_id: availability?.city_id ?? "",
     quicker_name: availability?.quicker_name ?? "",
     cedula: availability?.cedula ?? "",
     date: availability?.date ?? getTodayBogota(),
@@ -42,7 +44,7 @@ function toFormValues(availability?: AvailabilityRow): AvailabilityFormValues {
   };
 }
 
-export function AvailabilityFormDialog({ clients, serviceTypes, availability }: Props) {
+export function AvailabilityFormDialog({ clients, serviceTypes, cities, availability }: Props) {
   const isEdit = Boolean(availability);
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -144,6 +146,23 @@ export function AvailabilityFormDialog({ clients, serviceTypes, availability }: 
               {errors.service_type_id && (
                 <p className="text-sm text-destructive">{errors.service_type_id.message}</p>
               )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="city_id">Ciudad *</Label>
+              <select
+                id="city_id"
+                className="h-9 w-full rounded-md border bg-transparent px-2 text-sm"
+                {...register("city_id")}
+              >
+                <option value="">Selecciona…</option>
+                {cities.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+              {errors.city_id && <p className="text-sm text-destructive">{errors.city_id.message}</p>}
             </div>
 
             <div className="space-y-1.5">

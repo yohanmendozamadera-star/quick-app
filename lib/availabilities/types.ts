@@ -4,6 +4,7 @@ export type AvailabilityRow = {
   id: string;
   client_id: string;
   service_type_id: string;
+  city_id: string;
   quicker_name: string;
   cedula: string;
   date: string;
@@ -15,6 +16,7 @@ export type AvailabilityRow = {
   created_at: string;
   client: { name: string } | null;
   service_type: { name: string } | null;
+  city: { name: string } | null;
   created_by_profile: { full_name: string } | null;
 };
 
@@ -24,6 +26,7 @@ export type AvailabilityFilters = {
   dateTo?: string;
   clientId?: string;
   serviceTypeId?: string;
+  cityId?: string;
   status?: AvailabilityStatus;
 };
 

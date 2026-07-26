@@ -3,6 +3,7 @@ import { z } from "zod";
 export const availabilityFormSchema = z.object({
   client_id: z.string().min(1, "El cliente es obligatorio").uuid("Cliente inválido"),
   service_type_id: z.string().min(1, "El tipo de servicio es obligatorio").uuid("Tipo de servicio inválido"),
+  city_id: z.string().min(1, "La ciudad es obligatoria").uuid("Ciudad inválida"),
   quicker_name: z.string().trim().min(1, "El nombre del Quicker es obligatorio"),
   cedula: z
     .string()
@@ -29,6 +30,7 @@ export function normalizeAvailabilityInput(values: AvailabilityFormOutput) {
   return {
     client_id: values.client_id,
     service_type_id: values.service_type_id,
+    city_id: values.city_id,
     quicker_name: values.quicker_name.trim(),
     cedula: values.cedula.trim(),
     date: values.date,

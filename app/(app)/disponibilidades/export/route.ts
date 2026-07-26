@@ -1,16 +1,17 @@
 import ExcelJS from "exceljs";
 import { getCurrentUser, can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
-import { getClients, getServiceTypes } from "@/lib/catalog/queries";
+import { getClients, getServiceTypes, getVisibleCities } from "@/lib/catalog/queries";
 import { formatDate, formatDateTime, getTodayBogota } from "@/lib/format";
 import { STATUS_OPTIONS } from "@/lib/availabilities/types";
 import type { AvailabilityRow, AvailabilityFilters, AvailabilitySort } from "@/lib/availabilities/types";
 
 const SELECT_COLUMNS = `
-  id, client_id, service_type_id, quicker_name, cedula, date, payment, concept,
+  id, client_id, service_type_id, city_id, quicker_name, cedula, date, payment, concept,
   order_number, observation, status, created_at,
   client:clients(name),
   service_type:service_types(name),
+  city:cities(name),
   created_by_profile:profiles!availabilities_created_by_fkey(full_name)
 `;
 
@@ -44,11 +45,16 @@ export async function GET(request: Request) {
     dateTo: str(searchParams, "to"),
     clientId: str(searchParams, "client"),
     serviceTypeId: str(searchParams, "serviceType"),
+    cityId: str(searchParams, "city"),
     status: str(searchParams, "status") as AvailabilityFilters["status"],
   };
 
   const supabase = await createClient();
-  const [clients, serviceTypes] = await Promise.all([getClients(), getServiceTypes("disponibilidades")]);
+  const [clients, serviceTypes, cities] = await Promise.all([
+    getClients(),
+    getServiceTypes("disponibilidades"),
+    getVisibleCities(),
+  ]);
 
   const rows: AvailabilityRow[] = [];
   let from = 0;
@@ -59,6 +65,7 @@ export async function GET(request: Request) {
 
     if (filters.clientId) query = query.eq("client_id", filters.clientId);
     if (filters.serviceTypeId) query = query.eq("service_type_id", filters.serviceTypeId);
+    if (filters.cityId) query = query.eq("city_id", filters.cityId);
     if (filters.status) query = query.eq("status", filters.status);
     if (filters.dateFrom) query = query.gte("date", filters.dateFrom);
     if (filters.dateTo) query = query.lte("date", filters.dateTo);
@@ -93,6 +100,7 @@ export async function GET(request: Request) {
     { header: "N° orden", key: "order_number", width: 18 },
     { header: "Cliente", key: "client", width: 18 },
     { header: "Coordinador", key: "coordinator", width: 22 },
+    { header: "Ciudad", key: "city", width: 16 },
     { header: "Tipo de servicio", key: "service_type", width: 16 },
     { header: "Quicker", key: "quicker_name", width: 22 },
     { header: "Cédula", key: "cedula", width: 14 },
@@ -104,7 +112,7 @@ export async function GET(request: Request) {
     { header: "Fecha de registro", key: "created_at", width: 18 },
   ];
   dataSheet.getRow(1).font = { bold: true };
-  dataSheet.autoFilter = { from: "A1", to: "L1" };
+  dataSheet.autoFilter = { from: "A1", to: "M1" };
 
   let totalPayment = 0;
   for (const row of rows) {
@@ -113,6 +121,7 @@ export async function GET(request: Request) {
       order_number: row.order_number,
       client: row.client?.name ?? "",
       coordinator: row.created_by_profile?.full_name ?? "",
+      city: row.city?.name ?? "",
       service_type: row.service_type?.name ?? "",
       quicker_name: row.quicker_name,
       cedula: row.cedula,
@@ -132,6 +141,7 @@ export async function GET(request: Request) {
 
   const clientName = clients.find((c) => c.id === filters.clientId)?.name ?? "Todos";
   const serviceTypeName = serviceTypes.find((s) => s.id === filters.serviceTypeId)?.name ?? "Todos";
+  const cityName = cities.find((c) => c.id === filters.cityId)?.name ?? "Todas";
   const statusLabel = filters.status ? STATUS_LABELS[filters.status] : "Todos";
 
   const summaryRows: [string, string | number][] = [
@@ -147,6 +157,7 @@ export async function GET(request: Request) {
     ["Hasta", filters.dateTo ? formatDate(filters.dateTo) : "(sin límite)"],
     ["Cliente", clientName],
     ["Tipo de servicio", serviceTypeName],
+    ["Ciudad", cityName],
     ["Estado", statusLabel],
     ["Ordenado por", `${sort.column} (${sort.direction === "asc" ? "ascendente" : "descendente"})`],
   ];

@@ -14,9 +14,11 @@ import type { CatalogOption } from "@/lib/catalog/queries";
 export function AvailabilitiesFilters({
   clients,
   serviceTypes,
+  cities,
 }: {
   clients: CatalogOption[];
   serviceTypes: CatalogOption[];
+  cities: CatalogOption[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -127,6 +129,23 @@ export function AvailabilitiesFilters({
             {serviceTypes.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="space-y-1">
+          <Label htmlFor="city">Ciudad</Label>
+          <select
+            id="city"
+            className="h-9 w-full rounded-md border bg-transparent px-2 text-sm"
+            defaultValue={searchParams.get("city") ?? ""}
+            onChange={(e) => updateParam("city", e.target.value)}
+          >
+            <option value="">Todas</option>
+            {cities.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
               </option>
             ))}
           </select>

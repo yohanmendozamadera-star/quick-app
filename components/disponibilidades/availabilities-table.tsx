@@ -55,6 +55,7 @@ export function AvailabilitiesTable({
   canViewAudit,
   clients,
   serviceTypes,
+  cities,
 }: {
   rows: AvailabilityRow[];
   count: number;
@@ -70,6 +71,7 @@ export function AvailabilitiesTable({
   canViewAudit: boolean;
   clients: CatalogOption[];
   serviceTypes: CatalogOption[];
+  cities: CatalogOption[];
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loadingAllIds, setLoadingAllIds] = useState(false);
@@ -196,6 +198,7 @@ export function AvailabilitiesTable({
               <th className="px-3 py-2.5">N° orden</th>
               <th className="px-3 py-2.5">Cliente</th>
               <th className="px-3 py-2.5">Coordinador</th>
+              <th className="px-3 py-2.5">Ciudad</th>
               <th className="px-3 py-2.5">Tipo de servicio</th>
               <th className="px-3 py-2.5">Quicker</th>
               <th className="px-3 py-2.5">Cédula</th>
@@ -214,7 +217,7 @@ export function AvailabilitiesTable({
           <tbody className="divide-y">
             {rows.length === 0 && (
               <tr>
-                <td colSpan={13} className="px-3 py-10 text-center text-muted-foreground">
+                <td colSpan={14} className="px-3 py-10 text-center text-muted-foreground">
                   No se encontraron registros con los filtros aplicados.
                 </td>
               </tr>
@@ -236,6 +239,7 @@ export function AvailabilitiesTable({
                     <div>{row.created_by_profile?.full_name ?? "—"}</div>
                     <div className="text-xs">{formatDateTime(row.created_at)}</div>
                   </td>
+                  <td className="px-3 py-2.5 text-muted-foreground">{row.city?.name ?? "—"}</td>
                   <td className="px-3 py-2.5">{row.service_type?.name ?? "—"}</td>
                   <td className="px-3 py-2.5">
                     <ResizableCell value={row.quicker_name} />
@@ -274,6 +278,7 @@ export function AvailabilitiesTable({
                             availability={row}
                             clients={clients}
                             serviceTypes={serviceTypes}
+                            cities={cities}
                           />
                         )}
                         {canDelete && !isAutorizado && (

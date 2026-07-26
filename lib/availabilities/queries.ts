@@ -2,10 +2,11 @@ import { createClient } from "@/lib/supabase/server";
 import type { AvailabilityRow, AvailabilityFilters, AvailabilitySort } from "./types";
 
 const SELECT_COLUMNS = `
-  id, client_id, service_type_id, quicker_name, cedula, date, payment, concept,
+  id, client_id, service_type_id, city_id, quicker_name, cedula, date, payment, concept,
   order_number, observation, status, created_at,
   client:clients(name),
   service_type:service_types(name),
+  city:cities(name),
   created_by_profile:profiles!availabilities_created_by_fkey(full_name)
 `;
 
@@ -14,6 +15,7 @@ function applyFilters<T>(query: T, filters: AvailabilityFilters) {
   let q = query as any;
   if (filters.clientId) q = q.eq("client_id", filters.clientId);
   if (filters.serviceTypeId) q = q.eq("service_type_id", filters.serviceTypeId);
+  if (filters.cityId) q = q.eq("city_id", filters.cityId);
   if (filters.status) q = q.eq("status", filters.status);
   if (filters.dateFrom) q = q.gte("date", filters.dateFrom);
   if (filters.dateTo) q = q.lte("date", filters.dateTo);
@@ -54,6 +56,7 @@ export async function getAvailabilities({
     p_client_id: filters.clientId || null,
     p_service_type_id: filters.serviceTypeId || null,
     p_status: filters.status || null,
+    p_city_id: filters.cityId || null,
   });
 
   const totals = totalsData?.[0] ?? { total_count: 0, total_payment: 0 };
@@ -78,6 +81,7 @@ export async function getMatchingAvailabilityIds(filters: AvailabilityFilters): 
     p_client_id: filters.clientId || null,
     p_service_type_id: filters.serviceTypeId || null,
     p_status: filters.status || null,
+    p_city_id: filters.cityId || null,
   });
   return (data ?? []) as string[];
 }

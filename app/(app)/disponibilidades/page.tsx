@@ -1,7 +1,7 @@
 import { Download } from "lucide-react";
 import { getCurrentUser, can } from "@/lib/permissions";
 import { getAvailabilities } from "@/lib/availabilities/queries";
-import { getClients, getServiceTypes } from "@/lib/catalog/queries";
+import { getClients, getServiceTypes, getVisibleCities } from "@/lib/catalog/queries";
 import {
   DEFAULT_PAGE_SIZE,
   type AvailabilitySort,
@@ -63,13 +63,15 @@ export default async function DisponibilidadesPage({
     dateTo,
     clientId: str(sp, "client"),
     serviceTypeId: str(sp, "serviceType"),
+    cityId: str(sp, "city"),
     status: str(sp, "status") as AvailabilityStatus | undefined,
   };
 
-  const [{ rows, count, totals }, clients, serviceTypes] = await Promise.all([
+  const [{ rows, count, totals }, clients, serviceTypes, cities] = await Promise.all([
     getAvailabilities({ filters, sort, page, pageSize }),
     getClients(),
     getServiceTypes("disponibilidades"),
+    getVisibleCities(),
   ]);
 
   const canCreate = can(permissions, "disponibilidades.create");
@@ -81,6 +83,7 @@ export default async function DisponibilidadesPage({
   if (filters.dateTo) exportParams.set("to", filters.dateTo);
   if (filters.clientId) exportParams.set("client", filters.clientId);
   if (filters.serviceTypeId) exportParams.set("serviceType", filters.serviceTypeId);
+  if (filters.cityId) exportParams.set("city", filters.cityId);
   if (filters.status) exportParams.set("status", filters.status);
   exportParams.set("sort", sort.column);
   exportParams.set("dir", sort.direction);
@@ -106,11 +109,13 @@ export default async function DisponibilidadesPage({
               Descargar Excel
             </a>
           )}
-          {canCreate && <AvailabilityFormDialog clients={clients} serviceTypes={serviceTypes} />}
+          {canCreate && (
+            <AvailabilityFormDialog clients={clients} serviceTypes={serviceTypes} cities={cities} />
+          )}
         </div>
       </div>
 
-      <AvailabilitiesFilters clients={clients} serviceTypes={serviceTypes} />
+      <AvailabilitiesFilters clients={clients} serviceTypes={serviceTypes} cities={cities} />
 
       <AvailabilitiesTable
         rows={rows}
@@ -127,6 +132,7 @@ export default async function DisponibilidadesPage({
         canViewAudit={can(permissions, "audit.view")}
         clients={clients}
         serviceTypes={serviceTypes}
+        cities={cities}
       />
     </div>
   );
