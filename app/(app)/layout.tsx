@@ -17,6 +17,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       fullName={user.fullName}
       roleName={user.roleName}
       email={user.email}
+      avatarUrl={user.avatarUrl}
       permissions={user.permissions}
     >
       {children}

@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Menu, PanelLeftClose, PanelLeftOpen, LogOut, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { clearAllSavedFilters } from "@/lib/session-nav-filters";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 function initials(name: string) {
@@ -22,6 +23,7 @@ function initials(name: string) {
 export function Header({
   fullName,
   roleName,
+  avatarUrl,
   collapsed,
   onToggleCollapse,
   onOpenMobileMenu,
@@ -29,6 +31,7 @@ export function Header({
   fullName: string;
   roleName: string;
   email: string;
+  avatarUrl: string | null;
   collapsed: boolean;
   onToggleCollapse: () => void;
   onOpenMobileMenu: () => void;
@@ -70,15 +73,16 @@ export function Header({
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2">
+        <Link href="/mi-perfil" className="flex items-center gap-2 rounded-md px-1.5 py-1 hover:bg-muted" title="Mi perfil">
           <Avatar className="size-7">
+            {avatarUrl && <AvatarImage src={avatarUrl} alt={fullName} />}
             <AvatarFallback className="text-xs">{initials(fullName) || "U"}</AvatarFallback>
           </Avatar>
           <span className="hidden text-sm font-medium sm:inline">{fullName}</span>
           <Badge variant="secondary" className="hidden sm:inline-flex">
             {roleName}
           </Badge>
-        </div>
+        </Link>
 
         <Tooltip>
           <TooltipTrigger

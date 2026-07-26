@@ -10,12 +10,14 @@ export function AppShell({
   fullName,
   roleName,
   email,
+  avatarUrl,
   permissions,
   children,
 }: {
   fullName: string;
   roleName: string;
   email: string;
+  avatarUrl: string | null;
   permissions: string[];
   children: React.ReactNode;
 }) {
@@ -50,6 +52,7 @@ export function AppShell({
           fullName={fullName}
           roleName={roleName}
           email={email}
+          avatarUrl={avatarUrl}
           collapsed={collapsed}
           onToggleCollapse={() => setCollapsed((value) => !value)}
           onOpenMobileMenu={() => setMobileOpen(true)}
