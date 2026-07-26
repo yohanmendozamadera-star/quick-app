@@ -66,7 +66,11 @@ export function UserCreateDialog({ roles, cities }: { roles: RoleRow[]; cities: 
       toast.error("No se pudo crear el usuario", { description: result.message });
       return;
     }
-    toast.success("Usuario creado");
+    if (result.warning) {
+      toast.warning("Usuario creado con un aviso", { description: result.warning });
+    } else {
+      toast.success("Usuario creado");
+    }
     setOpen(false);
   };
 

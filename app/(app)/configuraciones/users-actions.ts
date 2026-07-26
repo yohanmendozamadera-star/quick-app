@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUser, can } from "@/lib/permissions";
 
-export type ActionResult = { success: true } | { success: false; message: string };
+export type ActionResult = { success: true; warning?: string } | { success: false; message: string };
 
 function revalidate() {
   revalidatePath("/configuraciones");
@@ -130,7 +130,15 @@ export async function createUserAccount(input: {
       .from("profile_cities")
       .insert(input.cityIds.map((cityId) => ({ profile_id: data.user.id, city_id: cityId })));
     if (citiesError) {
-      return { success: false, message: citiesError.message };
+      // El usuario y su rol ya quedaron creados; solo falló asignar las
+      // ciudades. No se reporta como fallo total (evita duplicados por
+      // reintentar la creación con el mismo correo) — se avisa aparte para
+      // que se asignen desde la lista de Usuarios.
+      revalidate();
+      return {
+        success: true,
+        warning: `El usuario se creó, pero no se pudieron asignar las ciudades: ${citiesError.message}. Asígnalas desde la lista de Usuarios.`,
+      };
     }
   }
 
