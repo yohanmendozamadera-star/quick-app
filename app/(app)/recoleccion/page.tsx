@@ -1,7 +1,7 @@
 import { Download } from "lucide-react";
 import { getCurrentUser, can } from "@/lib/permissions";
 import { getCollections } from "@/lib/collections/queries";
-import { getClients, getCities, getLoadTypes, getCedis } from "@/lib/catalog/queries";
+import { getClients, getVisibleCities, getLoadTypes, getCedis } from "@/lib/catalog/queries";
 import { DEFAULT_PAGE_SIZE, type CollectionsSort, type ReconciliationStatus } from "@/lib/collections/types";
 import { ModulePlaceholder } from "@/components/layout/module-placeholder";
 import { CollectionsFilters } from "@/components/recoleccion/collections-filters";
@@ -72,7 +72,7 @@ export default async function RecoleccionPage({
   const [{ rows, count, totals }, clients, cities, loadTypes, cedis] = await Promise.all([
     getCollections({ filters, sort, page, pageSize }),
     getClients(),
-    getCities(),
+    getVisibleCities(),
     getLoadTypes(),
     getCedis(),
   ]);

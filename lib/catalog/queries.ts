@@ -13,6 +13,25 @@ async function fetchActive(table: string, scopeFilter?: { column: string; value:
 
 export const getClients = cache(() => fetchActive("clients"));
 export const getCities = cache(() => fetchActive("cities"));
+
+/**
+ * Igual que getCities, pero recortado a las ciudades asignadas al usuario
+ * actual (Configuraciones > Usuarios > Ciudades). Si el usuario no tiene
+ * ninguna asignada, ve todas (sin restricción) — usar en cualquier lugar
+ * donde se muestre "Ciudad" como filtro o selector, para no ofrecer
+ * ciudades que igual va a filtrar la base de datos por RLS.
+ */
+export const getVisibleCities = cache(async (): Promise<CatalogOption[]> => {
+  const supabase = await createClient();
+  const [all, { data: restrictedIds }] = await Promise.all([
+    fetchActive("cities"),
+    supabase.rpc("current_user_city_ids"),
+  ]);
+  if (!restrictedIds || (restrictedIds as string[]).length === 0) return all;
+  const allowed = new Set(restrictedIds as string[]);
+  return all.filter((c) => allowed.has(c.id));
+});
+
 export const getLoadTypes = cache(() => fetchActive("load_types"));
 export const getTransportTypes = cache(() => fetchActive("transport_types"));
 export const getChargeDescriptions = cache(() => fetchActive("charge_descriptions"));
@@ -43,6 +62,15 @@ export const getCedis = cache(async (): Promise<CediOption[]> => {
     .eq("is_active", true)
     .order("code");
   return (data ?? []) as unknown as CediOption[];
+});
+
+/** Igual que getCedis, pero recortado a las ciudades asignadas al usuario actual. */
+export const getVisibleCedis = cache(async (): Promise<CediOption[]> => {
+  const supabase = await createClient();
+  const [all, { data: restrictedIds }] = await Promise.all([getCedis(), supabase.rpc("current_user_city_ids")]);
+  if (!restrictedIds || (restrictedIds as string[]).length === 0) return all;
+  const allowed = new Set(restrictedIds as string[]);
+  return all.filter((c) => c.city_id && allowed.has(c.city_id));
 });
 
 export type CatalogOptionWithStatus = CatalogOption & { is_active: boolean };

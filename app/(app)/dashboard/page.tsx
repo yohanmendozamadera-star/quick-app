@@ -1,7 +1,7 @@
 import { AlertTriangle } from "lucide-react";
 import { getCurrentUser, can } from "@/lib/permissions";
 import { getDashboardOperacion, buildDateRows } from "@/lib/dashboard/queries";
-import { getClients, getCities } from "@/lib/catalog/queries";
+import { getClients, getVisibleCities } from "@/lib/catalog/queries";
 import { getMonthStartBogota, getTodayBogota } from "@/lib/format";
 import { ModulePlaceholder } from "@/components/layout/module-placeholder";
 import { DashboardFilters } from "@/components/dashboard/dashboard-filters";
@@ -44,7 +44,7 @@ export default async function DashboardPage({
   const [{ detailRows, error }, clients, cities] = await Promise.all([
     getDashboardOperacion(dateFrom, dateTo),
     getClients(),
-    getCities(),
+    getVisibleCities(),
   ]);
 
   const dateRows = buildDateRows(detailRows);

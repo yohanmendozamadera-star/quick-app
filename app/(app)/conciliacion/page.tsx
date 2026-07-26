@@ -1,7 +1,7 @@
 import { Download } from "lucide-react";
 import { getCurrentUser, can } from "@/lib/permissions";
 import { getReconciliations } from "@/lib/reconciliations/queries";
-import { getClients, getCities, getLoadTypes, getCedis } from "@/lib/catalog/queries";
+import { getClients, getVisibleCities, getLoadTypes, getCedis } from "@/lib/catalog/queries";
 import { DEFAULT_PAGE_SIZE, type ReconciliationsSort } from "@/lib/reconciliations/types";
 import { ModulePlaceholder } from "@/components/layout/module-placeholder";
 import { ReconciliationsFilters } from "@/components/conciliacion/reconciliations-filters";
@@ -68,7 +68,7 @@ export default async function ConciliacionPage({
   const [{ rows, count, totals }, clients, cities, loadTypes, cedis] = await Promise.all([
     getReconciliations({ filters, sort, page, pageSize }),
     getClients(),
-    getCities(),
+    getVisibleCities(),
     getLoadTypes(),
     getCedis(),
   ]);

@@ -4,7 +4,7 @@ import { getAdditionalServices } from "@/lib/additional-services/queries";
 import {
   getCoordinators,
   getCenlogs,
-  getCedis,
+  getVisibleCedis,
   getServiceTypes,
   getTransportTypes,
   getChargeDescriptions,
@@ -80,7 +80,7 @@ export default async function AdicionalesPage({
       getAdditionalServices({ filters, sort, page, pageSize }),
       getCoordinators(),
       getCenlogs(),
-      getCedis(),
+      getVisibleCedis(),
       getServiceTypes("adicionales"),
       getTransportTypes(),
       getChargeDescriptions(),

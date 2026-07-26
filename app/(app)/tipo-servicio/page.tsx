@@ -1,7 +1,7 @@
 import { Download } from "lucide-react";
 import { getCurrentUser, can } from "@/lib/permissions";
 import { getServiceTypeRecords } from "@/lib/service-types/queries";
-import { getClients, getCities, getTipoServicioLoadTypes } from "@/lib/catalog/queries";
+import { getClients, getVisibleCities, getTipoServicioLoadTypes } from "@/lib/catalog/queries";
 import { DEFAULT_PAGE_SIZE, type ServiceTypeSort, type BillingStatus } from "@/lib/service-types/types";
 import { ModulePlaceholder } from "@/components/layout/module-placeholder";
 import { ServiceTypeFilters } from "@/components/tipo-servicio/service-type-filters";
@@ -68,7 +68,7 @@ export default async function TipoServicioPage({
   const [{ rows, count, totals }, clients, cities, loadTypes] = await Promise.all([
     getServiceTypeRecords({ filters, sort, page, pageSize }),
     getClients(),
-    getCities(),
+    getVisibleCities(),
     getTipoServicioLoadTypes(),
   ]);
 
