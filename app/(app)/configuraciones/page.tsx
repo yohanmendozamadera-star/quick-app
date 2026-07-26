@@ -6,6 +6,7 @@ import {
   getAllCenlogs,
   getAllTransportTypes,
   getAllChargeDescriptions,
+  getAllClients,
 } from "@/lib/catalog/queries";
 import { getAllRoles, getAllPermissions, getRolePermissionMap, getAllProfiles } from "@/lib/users/queries";
 import { ModulePlaceholder } from "@/components/layout/module-placeholder";
@@ -32,7 +33,7 @@ export default async function ConfiguracionesPage() {
     );
   }
 
-  const [cedis, cities, coordinators, cenlogs, transportTypes, chargeDescriptions, roles, allPermissions, rolePermissionMap, profiles] =
+  const [cedis, cities, coordinators, cenlogs, transportTypes, chargeDescriptions, clients, roles, allPermissions, rolePermissionMap, profiles] =
     await Promise.all([
       getAllCedis(),
       getAllCities(),
@@ -40,6 +41,7 @@ export default async function ConfiguracionesPage() {
       getAllCenlogs(),
       getAllTransportTypes(),
       getAllChargeDescriptions(),
+      getAllClients(),
       canManageUsers ? getAllRoles() : Promise.resolve([]),
       canManageUsers ? getAllPermissions() : Promise.resolve([]),
       canManageUsers ? getRolePermissionMap() : Promise.resolve({}),
@@ -59,6 +61,7 @@ export default async function ConfiguracionesPage() {
 
       <Tabs defaultValue={defaultTab}>
         <TabsList>
+          {canManageConfig && <TabsTrigger value="clientes">Clientes</TabsTrigger>}
           {canManageConfig && <TabsTrigger value="droguerias">Droguerías</TabsTrigger>}
           {canManageConfig && <TabsTrigger value="ciudades">Ciudades</TabsTrigger>}
           {canManageConfig && <TabsTrigger value="coordinadores">Coordinadores</TabsTrigger>}
@@ -71,6 +74,10 @@ export default async function ConfiguracionesPage() {
 
         {canManageConfig && (
           <>
+            <TabsContent value="clientes" className="pt-4">
+              <SimpleCatalogManager table="clients" items={clients} itemLabel="Cliente" />
+            </TabsContent>
+
             <TabsContent value="droguerias" className="pt-4">
               <CedisManager cedis={cedis} cities={cities} />
             </TabsContent>

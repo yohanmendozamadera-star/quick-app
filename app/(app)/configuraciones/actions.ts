@@ -163,7 +163,8 @@ export type SimpleCatalogTable =
   | "coordinators"
   | "cenlogs"
   | "transport_types"
-  | "charge_descriptions";
+  | "charge_descriptions"
+  | "clients";
 
 const SIMPLE_TABLES = new Set<SimpleCatalogTable>([
   "cities",
@@ -171,6 +172,7 @@ const SIMPLE_TABLES = new Set<SimpleCatalogTable>([
   "cenlogs",
   "transport_types",
   "charge_descriptions",
+  "clients",
 ]);
 
 function assertSimpleTable(table: string): table is SimpleCatalogTable {

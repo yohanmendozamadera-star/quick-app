@@ -21,7 +21,7 @@ export const getCenlogs = cache(() => fetchActive("cenlogs"));
 export const getNodes = cache(() => fetchActive("nodes"));
 export const getKeys = cache(() => fetchActive("keys"));
 
-export const getServiceTypes = cache((scope: "recoleccion" | "adicionales") =>
+export const getServiceTypes = cache((scope: "recoleccion" | "adicionales" | "disponibilidades") =>
   fetchActive("service_types", { column: "scope", value: scope }),
 );
 
@@ -69,6 +69,7 @@ export const getAllCoordinators = cache(() => fetchAll("coordinators"));
 export const getAllCenlogs = cache(() => fetchAll("cenlogs"));
 export const getAllTransportTypes = cache(() => fetchAll("transport_types"));
 export const getAllChargeDescriptions = cache(() => fetchAll("charge_descriptions"));
+export const getAllClients = cache(() => fetchAll("clients"));
 
 // El módulo Tipo de Servicio solo trabaja con estos 3 tipos de carga
 // (Neveras, Periferia, Volumen), aunque el catálogo general de Recolección
