@@ -4,24 +4,18 @@ import { createClient } from "@/lib/supabase/server";
 import { getAllClients, getAllCities } from "@/lib/catalog/queries";
 import { formatCurrency, formatDate, getTodayBogota } from "@/lib/format";
 
-type ReconciliationRow = {
-  service_number: string;
-  client_document: string | null;
-  novedad: string | null;
-  collection_amount: number;
-};
-
 type CollectionRow = {
   service_number: string;
   client_document: string | null;
   collection_amount: number;
   service_date: string;
+  reconciliation_status: string;
 };
 
-function addDaysIso(iso: string, days: number) {
-  const date = new Date(`${iso}T00:00:00Z`);
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
+function daysBetweenIso(fromIso: string, toIso: string) {
+  const from = new Date(`${fromIso}T00:00:00Z`).getTime();
+  const to = new Date(`${toIso}T00:00:00Z`).getTime();
+  return Math.round((to - from) / (1000 * 60 * 60 * 24));
 }
 
 function drawTable(
@@ -81,31 +75,22 @@ export async function GET(
 
   const supabase = await createClient();
 
-  const { data: reconciliations } = await supabase
-    .from("reconciliations")
-    .select("service_number, client_document, novedad, collection_amount")
-    .eq("client_id", clientId)
-    .eq("city_id", cityId)
-    .eq("cedi_code", cediCode)
-    .eq("reconciliation_date", date)
-    .is("deleted_at", null);
-
-  const rows = (reconciliations ?? []) as ReconciliationRow[];
-  const sinNovedad = rows.filter((r) => !r.novedad);
-  const conNovedad = rows.filter((r) => r.novedad);
-
-  const cutoff = addDaysIso(getTodayBogota(), -2);
   const { data: collections } = await supabase
     .from("collections")
-    .select("service_number, client_document, collection_amount, service_date")
+    .select("service_number, client_document, collection_amount, service_date, reconciliation_status")
     .eq("client_id", clientId)
     .eq("city_id", cityId)
     .eq("cedi_code", cediCode)
     .eq("service_date", date)
-    .eq("reconciliation_status", "no_conciliado")
-    .lte("service_date", cutoff);
+    .is("deleted_at", null);
 
-  const reprogramadas = (collections ?? []) as CollectionRow[];
+  const rows = (collections ?? []) as CollectionRow[];
+  const today = getTodayBogota();
+
+  const conciliados = rows.filter((r) => r.reconciliation_status === "conciliado");
+  const pendientesTodos = rows.filter((r) => r.reconciliation_status === "no_conciliado");
+  const reprogramados = pendientesTodos.filter((r) => daysBetweenIso(r.service_date, today) >= 2);
+  const pendientesRecientes = pendientesTodos.filter((r) => daysBetweenIso(r.service_date, today) < 2);
 
   const sum = (list: { collection_amount: number }[]) =>
     list.reduce((acc, r) => acc + (r.collection_amount ?? 0), 0);
@@ -124,56 +109,36 @@ export async function GET(
   doc.text(`Ciudad: ${cityName}`);
   doc.text(`CEDI: ${cediCode}`);
   doc.text(`Fecha: ${formatDate(date)}`);
-  doc.moveDown(1);
-
-  doc.font("Helvetica-Bold").fontSize(12).text(`Sin novedad (${sinNovedad.length}) — ${formatCurrency(sum(sinNovedad))}`);
   doc.moveDown(0.3);
-  if (sinNovedad.length > 0) {
-    drawTable(
-      doc,
-      ["N° servicio", "Documento", "Valor"],
-      sinNovedad.map((r) => [r.service_number, r.client_document ?? "—", formatCurrency(r.collection_amount)]),
-      [180, 180, 120],
-    );
-  } else {
-    doc.font("Helvetica").fontSize(9).text("Sin registros.");
-    doc.moveDown(1);
-  }
-
-  doc.font("Helvetica-Bold").fontSize(12).text(`Con novedad (${conNovedad.length}) — ${formatCurrency(sum(conNovedad))}`);
-  doc.moveDown(0.3);
-  if (conNovedad.length > 0) {
-    drawTable(
-      doc,
-      ["N° servicio", "Documento", "Novedad", "Valor"],
-      conNovedad.map((r) => [r.service_number, r.client_document ?? "—", r.novedad ?? "—", formatCurrency(r.collection_amount)]),
-      [140, 140, 140, 100],
-    );
-  } else {
-    doc.font("Helvetica").fontSize(9).text("Sin registros.");
-    doc.moveDown(1);
-  }
-
   doc
     .font("Helvetica-Bold")
-    .fontSize(12)
-    .text(`Reprogramados (${reprogramadas.length}) — ${formatCurrency(sum(reprogramadas))}`);
-  doc.moveDown(0.3);
-  if (reprogramadas.length > 0) {
-    drawTable(
-      doc,
-      ["N° servicio", "Documento", "Fecha servicio", "Valor"],
-      reprogramadas.map((r) => [
-        r.service_number,
-        r.client_document ?? "—",
-        formatDate(r.service_date),
-        formatCurrency(r.collection_amount),
-      ]),
-      [140, 140, 140, 100],
-    );
-  } else {
-    doc.font("Helvetica").fontSize(9).text("Sin registros.");
-  }
+    .text(`Total recolectado: ${rows.length} — ${formatCurrency(sum(rows))}`);
+  doc.moveDown(1);
+
+  const section = (title: string, list: CollectionRow[]) => {
+    doc.font("Helvetica-Bold").fontSize(12).text(`${title} (${list.length}) — ${formatCurrency(sum(list))}`);
+    doc.moveDown(0.3);
+    if (list.length > 0) {
+      drawTable(
+        doc,
+        ["N° servicio", "Documento", "Fecha servicio", "Valor"],
+        list.map((r) => [
+          r.service_number,
+          r.client_document ?? "—",
+          formatDate(r.service_date),
+          formatCurrency(r.collection_amount),
+        ]),
+        [140, 140, 140, 100],
+      );
+    } else {
+      doc.font("Helvetica").fontSize(9).text("Sin registros.");
+      doc.moveDown(1);
+    }
+  };
+
+  section("Conciliado", conciliados);
+  section("Reprogramados", reprogramados);
+  section("Pendientes (recientes)", pendientesRecientes);
 
   doc.end();
   const buffer = await donePromise;
