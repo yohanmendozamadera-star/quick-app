@@ -1,7 +1,7 @@
 import PDFDocument from "pdfkit";
 import { getCurrentUser, can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
-import { getAllClients, getAllCities } from "@/lib/catalog/queries";
+import { getAllClients, getAllCities, getAllCedis } from "@/lib/catalog/queries";
 import { formatCurrency, formatDate } from "@/lib/format";
 
 type ReconciliationRow = {
@@ -16,6 +16,13 @@ const PAGE_WIDTH = 612;
 const MARGIN = 40;
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
 const BLACK = "#000000";
+
+/** El archivo de carga masiva suele traer "Sin novedad" como texto literal en la
+ * columna Novedad, no vacío — se trata igual que null (sin novedad real). */
+function isSinNovedad(novedad: string | null) {
+  const normalized = (novedad ?? "").trim().toLowerCase();
+  return normalized === "" || normalized === "sin novedad";
+}
 
 type Cell = { text: string; width: number; bold?: boolean; fontSize?: number };
 
@@ -47,15 +54,18 @@ export async function GET(
   const date = searchParams.get("date");
   const cityId = searchParams.get("cityId");
   const cediCode = searchParams.get("cediCode");
-  const cediName = searchParams.get("cediName") || cediCode;
 
   if (!clientId || !date || !cityId || !cediCode) {
     return new Response("Parámetros incompletos", { status: 400 });
   }
 
-  const [clients, cities] = await Promise.all([getAllClients(), getAllCities()]);
+  const [clients, cities, cedis] = await Promise.all([getAllClients(), getAllCities(), getAllCedis()]);
   const clientName = clients.find((c) => c.id === clientId)?.name ?? "Cliente";
   const cityName = cities.find((c) => c.id === cityId)?.name ?? "Ciudad";
+  // El nombre del CEDI se resuelve siempre desde el catálogo (fuente de verdad),
+  // no desde el texto denormalizado en collections/reconciliations, que puede
+  // faltar en registros antiguos.
+  const cediName = cedis.find((c) => c.code === cediCode)?.name ?? searchParams.get("cediName") ?? cediCode;
 
   const supabase = await createClient();
 
@@ -70,8 +80,8 @@ export async function GET(
     .order("service_number");
 
   const rows = (reconciliations ?? []) as ReconciliationRow[];
-  const sinNovedad = rows.filter((r) => !r.novedad);
-  const conNovedad = rows.filter((r) => r.novedad);
+  const sinNovedad = rows.filter((r) => isSinNovedad(r.novedad));
+  const conNovedad = rows.filter((r) => !isSinNovedad(r.novedad));
   const sum = (list: { collection_amount: number }[]) =>
     list.reduce((acc, r) => acc + (r.collection_amount ?? 0), 0);
 
