@@ -69,15 +69,33 @@ export async function GET(
 
   const supabase = await createClient();
 
-  const { data: reconciliations } = await supabase
-    .from("reconciliations")
-    .select("service_number, client_document, novedad, collection_amount, service_date")
+  // La fecha de esta fila viene de collections.service_date (recolección), no de
+  // reconciliations.service_date/reconciliation_date — que suelen quedar
+  // desfasados unos días respecto a cuándo se recolectó. Para encontrar las
+  // conciliaciones correctas se parte de las recolecciones de ese día/cedi y se
+  // sigue el enlace collections.reconciliation_id, en vez de comparar fechas.
+  const { data: collections } = await supabase
+    .from("collections")
+    .select("reconciliation_id")
     .eq("client_id", clientId)
     .eq("city_id", cityId)
     .eq("cedi_code", cediCode)
     .eq("service_date", date)
-    .is("deleted_at", null)
-    .order("service_number");
+    .is("deleted_at", null);
+
+  const reconciliationIds = (collections ?? [])
+    .map((c) => c.reconciliation_id)
+    .filter((id): id is string => Boolean(id));
+
+  const { data: reconciliations } =
+    reconciliationIds.length > 0
+      ? await supabase
+          .from("reconciliations")
+          .select("service_number, client_document, novedad, collection_amount, service_date")
+          .in("id", reconciliationIds)
+          .is("deleted_at", null)
+          .order("service_number")
+      : { data: [] };
 
   const rows = (reconciliations ?? []) as ReconciliationRow[];
   const sinNovedad = rows.filter((r) => isSinNovedad(r.novedad));
