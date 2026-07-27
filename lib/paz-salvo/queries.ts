@@ -60,9 +60,8 @@ export function buildPazSalvoPeriodRows(
         return {
           cediCode: r.cedi_code,
           cediName: r.cedi_name,
-          totalAmount: Number(r.total_amount ?? 0),
+          totalCount: Number(r.total_count ?? 0),
           pendingCount: Number(r.pending_count ?? 0),
-          pendingAmount: Number(r.pending_amount ?? 0),
           document: doc
             ? {
                 fileName: doc.file_name,

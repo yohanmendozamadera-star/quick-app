@@ -5,9 +5,8 @@ export type PazSalvoDetailRow = {
   city_id: string;
   cedi_code: string;
   cedi_name: string | null;
-  total_amount: number;
+  total_count: number;
   pending_count: number;
-  pending_amount: number;
 };
 
 export type PazSalvoFilters = {
@@ -29,9 +28,8 @@ export type PazSalvoDocumentRow = {
 export type PazSalvoCediRow = {
   cediCode: string;
   cediName: string | null;
-  totalAmount: number;
+  totalCount: number;
   pendingCount: number;
-  pendingAmount: number;
   document: {
     fileName: string;
     storagePath: string;

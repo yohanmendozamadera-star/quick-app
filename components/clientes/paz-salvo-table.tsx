@@ -2,7 +2,7 @@
 
 import { Fragment, useState } from "react";
 import { ChevronDown, ChevronRight, FileText, CheckCircle2 } from "lucide-react";
-import { formatCurrency, formatDateTime } from "@/lib/format";
+import { formatDateTime } from "@/lib/format";
 import type { PazSalvoPeriodRow } from "@/lib/paz-salvo/types";
 import type { CatalogOption } from "@/lib/catalog/queries";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,17 @@ function formatPeriod(period: string) {
   if (Number.isNaN(date.getTime())) return period;
   const label = monthFormatter.format(date);
   return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+function EstadoBadge({ pendingCount }: { pendingCount: number }) {
+  if (pendingCount === 0) {
+    return <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">Paz y Salvo</Badge>;
+  }
+  return (
+    <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">
+      Debe {pendingCount} {pendingCount === 1 ? "orden" : "órdenes"}
+    </Badge>
+  );
 }
 
 export function PazSalvoTable({
@@ -74,8 +85,8 @@ export function PazSalvoTable({
           {periodRows.map((periodRow) => {
             const periodOpen = expandedPeriods.has(periodRow.period);
             const cedis = periodRow.cities.flatMap((c) => c.cedis);
-            const totalAmount = cedis.reduce((sum, c) => sum + c.totalAmount, 0);
-            const pendingAmount = cedis.reduce((sum, c) => sum + c.pendingAmount, 0);
+            const totalCount = cedis.reduce((sum, c) => sum + c.totalCount, 0);
+            const pendingCount = cedis.reduce((sum, c) => sum + c.pendingCount, 0);
 
             return (
               <Fragment key={periodRow.period}>
@@ -84,15 +95,9 @@ export function PazSalvoTable({
                     {periodOpen ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
                   </td>
                   <td className="px-3 py-2.5 font-semibold">{formatPeriod(periodRow.period)}</td>
-                  <td className="px-3 py-2.5 font-medium">{formatCurrency(totalAmount)}</td>
+                  <td className="px-3 py-2.5 font-medium">{totalCount.toLocaleString("es-CO")}</td>
                   <td className="px-3 py-2.5">
-                    {pendingAmount === 0 ? (
-                      <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">Paz y Salvo</Badge>
-                    ) : (
-                      <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">
-                        Debe {formatCurrency(pendingAmount)}
-                      </Badge>
-                    )}
+                    <EstadoBadge pendingCount={pendingCount} />
                   </td>
                   <td className="px-3 py-2.5" />
                 </tr>
@@ -101,8 +106,8 @@ export function PazSalvoTable({
                   periodRow.cities.map((cityRow) => {
                     const cityKey = `${periodRow.period}|${cityRow.cityId}`;
                     const cityOpen = expandedCities.has(cityKey);
-                    const cityTotalAmount = cityRow.cedis.reduce((sum, c) => sum + c.totalAmount, 0);
-                    const cityPendingAmount = cityRow.cedis.reduce((sum, c) => sum + c.pendingAmount, 0);
+                    const cityTotalCount = cityRow.cedis.reduce((sum, c) => sum + c.totalCount, 0);
+                    const cityPendingCount = cityRow.cedis.reduce((sum, c) => sum + c.pendingCount, 0);
 
                     return (
                       <Fragment key={cityKey}>
@@ -117,24 +122,16 @@ export function PazSalvoTable({
                             </span>
                             {cityName(cityRow.cityId)}
                           </td>
-                          <td className="px-3 py-2.5">{formatCurrency(cityTotalAmount)}</td>
+                          <td className="px-3 py-2.5">{cityTotalCount.toLocaleString("es-CO")}</td>
                           <td className="px-3 py-2.5">
-                            {cityPendingAmount === 0 ? (
-                              <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">
-                                Paz y Salvo
-                              </Badge>
-                            ) : (
-                              <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">
-                                Debe {formatCurrency(cityPendingAmount)}
-                              </Badge>
-                            )}
+                            <EstadoBadge pendingCount={cityPendingCount} />
                           </td>
                           <td className="px-3 py-2.5" />
                         </tr>
 
                         {cityOpen &&
                           cityRow.cedis.map((cedi) => {
-                            const documentType = cedi.pendingAmount === 0 ? "paz_y_salvo" : "compromiso";
+                            const documentType = cedi.pendingCount === 0 ? "paz_y_salvo" : "compromiso";
                             const informeParams = new URLSearchParams({
                               cediCode: cedi.cediCode,
                               cityId: cityRow.cityId,
@@ -147,17 +144,9 @@ export function PazSalvoTable({
                                 <td className="px-3 py-2.5 pl-12 text-muted-foreground">
                                   {cedi.cediName ?? cedi.cediCode} ({cedi.cediCode})
                                 </td>
-                                <td className="px-3 py-2.5">{formatCurrency(cedi.totalAmount)}</td>
+                                <td className="px-3 py-2.5">{cedi.totalCount.toLocaleString("es-CO")}</td>
                                 <td className="px-3 py-2.5">
-                                  {cedi.pendingAmount === 0 ? (
-                                    <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">
-                                      Paz y Salvo
-                                    </Badge>
-                                  ) : (
-                                    <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">
-                                      Debe {formatCurrency(cedi.pendingAmount)}
-                                    </Badge>
-                                  )}
+                                  <EstadoBadge pendingCount={cedi.pendingCount} />
                                 </td>
                                 <td className="px-3 py-2.5">
                                   <div className="flex items-center gap-1">
