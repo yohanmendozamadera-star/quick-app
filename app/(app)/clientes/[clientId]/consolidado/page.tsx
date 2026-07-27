@@ -58,7 +58,7 @@ export default async function ConsolidadoPage({
           Consolidado — {client?.name ?? "Cliente"}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Conciliación diaria y recolecciones reprogramadas por ciudad y CEDI
+          Recolectado, conciliado y pendiente por ciudad y CEDI
         </p>
       </div>
 

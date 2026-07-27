@@ -7,8 +7,6 @@ export type ConsolidadoDetailRow = {
   recoleccion_amount: number;
   conciliado_count: number;
   conciliado_amount: number;
-  reprogramada_count: number;
-  reprogramada_amount: number;
   pendiente_count: number;
   pendiente_amount: number;
 };
@@ -26,8 +24,6 @@ export type ConsolidadoCediRow = {
   recoleccionAmount: number;
   conciliadoCount: number;
   conciliadoAmount: number;
-  reprogramadaCount: number;
-  reprogramadaAmount: number;
   pendienteCount: number;
   pendienteAmount: number;
 };

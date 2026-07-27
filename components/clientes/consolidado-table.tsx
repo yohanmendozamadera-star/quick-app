@@ -14,8 +14,6 @@ type Totals = {
   recoleccionAmount: number;
   conciliadoCount: number;
   conciliadoAmount: number;
-  reprogramadaCount: number;
-  reprogramadaAmount: number;
   pendienteCount: number;
   pendienteAmount: number;
 };
@@ -26,8 +24,6 @@ function emptyTotals(): Totals {
     recoleccionAmount: 0,
     conciliadoCount: 0,
     conciliadoAmount: 0,
-    reprogramadaCount: 0,
-    reprogramadaAmount: 0,
     pendienteCount: 0,
     pendienteAmount: 0,
   };
@@ -39,8 +35,6 @@ function addTotals(acc: Totals, row: Totals): Totals {
     recoleccionAmount: acc.recoleccionAmount + row.recoleccionAmount,
     conciliadoCount: acc.conciliadoCount + row.conciliadoCount,
     conciliadoAmount: acc.conciliadoAmount + row.conciliadoAmount,
-    reprogramadaCount: acc.reprogramadaCount + row.reprogramadaCount,
-    reprogramadaAmount: acc.reprogramadaAmount + row.reprogramadaAmount,
     pendienteCount: acc.pendienteCount + row.pendienteCount,
     pendienteAmount: acc.pendienteAmount + row.pendienteAmount,
   };
@@ -71,9 +65,6 @@ function MetricCells({ totals }: { totals: Totals }) {
       </td>
       <td className="px-3 py-2.5">
         <Metric count={totals.conciliadoCount} amount={totals.conciliadoAmount} />
-      </td>
-      <td className="px-3 py-2.5">
-        <Metric count={totals.reprogramadaCount} amount={totals.reprogramadaAmount} />
       </td>
       <td className="px-3 py-2.5">
         <Metric count={totals.pendienteCount} amount={totals.pendienteAmount} />
@@ -122,8 +113,6 @@ export function ConsolidadoTable({
     recoleccionAmount: c.recoleccionAmount,
     conciliadoCount: c.conciliadoCount,
     conciliadoAmount: c.conciliadoAmount,
-    reprogramadaCount: c.reprogramadaCount,
-    reprogramadaAmount: c.reprogramadaAmount,
     pendienteCount: c.pendienteCount,
     pendienteAmount: c.pendienteAmount,
   });
@@ -137,7 +126,6 @@ export function ConsolidadoTable({
             <th className="px-3 py-2.5">Fecha / Ciudad / CEDI</th>
             <th className="px-3 py-2.5">Total recolectado</th>
             <th className="px-3 py-2.5">Total conciliado</th>
-            <th className="px-3 py-2.5">Reprogramadas</th>
             <th className="px-3 py-2.5">Total pendientes</th>
             <th className="px-3 py-2.5">Estado</th>
             <th className="w-10 px-3 py-2.5" />
@@ -146,7 +134,7 @@ export function ConsolidadoTable({
         <tbody className="divide-y">
           {dateRows.length === 0 && (
             <tr>
-              <td colSpan={8} className="px-3 py-10 text-center text-muted-foreground">
+              <td colSpan={7} className="px-3 py-10 text-center text-muted-foreground">
                 No hay conciliaciones registradas en este rango de fechas.
               </td>
             </tr>
@@ -197,6 +185,7 @@ export function ConsolidadoTable({
                               date: dateRow.date,
                               cityId: cityRow.cityId,
                               cediCode: cedi.cediCode,
+                              cediName: cedi.cediName ?? cedi.cediCode,
                             });
                             return (
                               <tr key={cedi.cediCode} className="bg-muted/5">

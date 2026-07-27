@@ -42,8 +42,6 @@ export function buildConsolidadoDateRows(detailRows: ConsolidadoDetailRow[]): Co
         recoleccionAmount: Number(r.recoleccion_amount ?? 0),
         conciliadoCount: Number(r.conciliado_count ?? 0),
         conciliadoAmount: Number(r.conciliado_amount ?? 0),
-        reprogramadaCount: Number(r.reprogramada_count ?? 0),
-        reprogramadaAmount: Number(r.reprogramada_amount ?? 0),
         pendienteCount: Number(r.pendiente_count ?? 0),
         pendienteAmount: Number(r.pendiente_amount ?? 0),
       })),
