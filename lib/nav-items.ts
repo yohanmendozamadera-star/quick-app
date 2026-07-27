@@ -10,11 +10,17 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+export type NavChild = {
+  href: string;
+  label: string;
+};
+
 export type NavItem = {
   href: string;
   label: string;
   icon: LucideIcon;
   permission: string;
+  children?: NavChild[];
 };
 
 export const NAV_ITEMS: NavItem[] = [

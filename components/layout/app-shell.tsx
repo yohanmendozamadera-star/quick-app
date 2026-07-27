@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { Header } from "@/components/layout/header";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import type { CatalogOption } from "@/lib/catalog/queries";
 
 export function AppShell({
   fullName,
@@ -12,6 +13,7 @@ export function AppShell({
   email,
   avatarUrl,
   permissions,
+  clients,
   children,
 }: {
   fullName: string;
@@ -19,6 +21,7 @@ export function AppShell({
   email: string;
   avatarUrl: string | null;
   permissions: string[];
+  clients: CatalogOption[];
   children: React.ReactNode;
 }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -35,7 +38,7 @@ export function AppShell({
         <div className="flex h-14 items-center justify-center border-b px-3 font-semibold tracking-tight">
           {collapsed ? "Q" : "Quick"}
         </div>
-        <SidebarNav permissions={permissions} collapsed={collapsed} />
+        <SidebarNav permissions={permissions} clients={clients} collapsed={collapsed} />
       </aside>
 
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
@@ -43,7 +46,11 @@ export function AppShell({
           <SheetHeader className="border-b">
             <SheetTitle>Quick</SheetTitle>
           </SheetHeader>
-          <SidebarNav permissions={permissions} onNavigate={() => setMobileOpen(false)} />
+          <SidebarNav
+            permissions={permissions}
+            clients={clients}
+            onNavigate={() => setMobileOpen(false)}
+          />
         </SheetContent>
       </Sheet>
 

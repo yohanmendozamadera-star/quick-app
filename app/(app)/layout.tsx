@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
+import { getClients } from "@/lib/catalog/queries";
 import { AppShell } from "@/components/layout/app-shell";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -12,6 +13,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect("/login");
   }
 
+  const clients = await getClients();
+
   return (
     <AppShell
       fullName={user.fullName}
@@ -19,6 +22,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       email={user.email}
       avatarUrl={user.avatarUrl}
       permissions={user.permissions}
+      clients={clients}
     >
       {children}
     </AppShell>
