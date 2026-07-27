@@ -2,177 +2,35 @@ import PDFDocument from "pdfkit";
 import { getCurrentUser, can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { getAllClients, getAllCities } from "@/lib/catalog/queries";
-import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
+import { formatCurrency, formatDate } from "@/lib/format";
 
 type ReconciliationRow = {
   service_number: string;
+  client_document: string | null;
   novedad: string | null;
   collection_amount: number;
-};
-
-const COLORS = {
-  header: "#1e293b",
-  headerText: "#f8fafc",
-  text: "#111827",
-  muted: "#6b7280",
-  border: "#cbd5e1",
-  rowAlt: "#f8fafc",
-  sinNovedad: "#059669",
-  conNovedad: "#b45309",
+  service_date: string;
 };
 
 const PAGE_WIDTH = 612;
 const MARGIN = 40;
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
+const BLACK = "#000000";
 
-function drawHeader(doc: PDFKit.PDFDocument, title: string, subtitle: string) {
-  doc.rect(0, 0, PAGE_WIDTH, 84).fill(COLORS.header);
-  doc.fillColor(COLORS.headerText).font("Helvetica-Bold").fontSize(18).text(title, MARGIN, 26);
-  doc.font("Helvetica").fontSize(10).text(subtitle, MARGIN, 52);
-  doc.fillColor(COLORS.text);
-  doc.x = MARGIN;
-  doc.y = 104;
-}
+type Cell = { text: string; width: number; bold?: boolean; fontSize?: number };
 
-function drawInfoBox(doc: PDFKit.PDFDocument, rows: [string, string][]) {
-  const boxY = doc.y;
-  const labelWidth = 90;
-  const valueWidth = CONTENT_WIDTH - labelWidth - 24;
-  const padding = 10;
-
-  doc.font("Helvetica").fontSize(10);
-  let y = boxY + padding;
-  const rowYs: number[] = [];
-  for (const [, value] of rows) {
-    rowYs.push(y);
-    const h = Math.max(14, doc.heightOfString(value, { width: valueWidth }));
-    y += h + 6;
-  }
-  const boxHeight = y - boxY + padding - 6;
-
-  doc.roundedRect(MARGIN, boxY, CONTENT_WIDTH, boxHeight, 4).lineWidth(1).stroke(COLORS.border);
-
-  rows.forEach(([label, value], i) => {
-    const rowY = rowYs[i];
-    doc.font("Helvetica-Bold").fontSize(9).fillColor(COLORS.muted).text(label, MARGIN + 12, rowY, { width: labelWidth });
-    doc.font("Helvetica").fontSize(10).fillColor(COLORS.text).text(value, MARGIN + 12 + labelWidth, rowY, {
-      width: valueWidth,
-    });
-  });
-
-  doc.y = boxY + boxHeight + 16;
-  doc.x = MARGIN;
-}
-
-function drawStatCards(doc: PDFKit.PDFDocument, cards: { label: string; count: number; amount: number; color: string }[]) {
-  const gap = 12;
-  const cardWidth = (CONTENT_WIDTH - gap * (cards.length - 1)) / cards.length;
-  const cardHeight = 58;
-  const y = doc.y;
-
-  cards.forEach((card, i) => {
-    const x = MARGIN + i * (cardWidth + gap);
-    doc.roundedRect(x, y, cardWidth, cardHeight, 4).lineWidth(1).stroke(COLORS.border);
-    doc.rect(x, y, 4, cardHeight).fill(card.color);
-    doc.font("Helvetica-Bold").fontSize(9).fillColor(COLORS.muted).text(card.label, x + 14, y + 10, {
-      width: cardWidth - 24,
-    });
+/** Dibuja una fila de celdas con borde completo (estilo tabla de Word), altura fija. */
+function drawGridRow(doc: PDFKit.PDFDocument, x: number, y: number, cells: Cell[], rowHeight: number) {
+  let cellX = x;
+  for (const cell of cells) {
+    doc.lineWidth(0.75).rect(cellX, y, cell.width, rowHeight).stroke(BLACK);
     doc
-      .font("Helvetica-Bold")
-      .fontSize(16)
-      .fillColor(COLORS.text)
-      .text(card.count.toLocaleString("es-CO"), x + 14, y + 24, { width: cardWidth - 24 });
-    doc.font("Helvetica").fontSize(9).fillColor(COLORS.muted).text(formatCurrency(card.amount), x + 14, y + 42, {
-      width: cardWidth - 24,
-    });
-  });
-
-  doc.y = y + cardHeight + 20;
-  doc.x = MARGIN;
-}
-
-function drawTable(
-  doc: PDFKit.PDFDocument,
-  title: string,
-  count: number,
-  amount: number,
-  color: string,
-  headers: string[],
-  rows: (string | number)[][],
-  columnWidths: number[],
-) {
-  doc
-    .font("Helvetica-Bold")
-    .fontSize(11)
-    .fillColor(COLORS.text)
-    .text(`${title} (${count}) — ${formatCurrency(amount)}`, MARGIN, doc.y);
-  doc.moveDown(0.4);
-
-  if (rows.length === 0) {
-    doc.font("Helvetica").fontSize(9).fillColor(COLORS.muted).text("Sin registros.", MARGIN, doc.y);
-    doc.moveDown(1.2);
-    doc.fillColor(COLORS.text);
-    return;
+      .font(cell.bold ? "Helvetica-Bold" : "Helvetica")
+      .fontSize(cell.fontSize ?? 9)
+      .fillColor(BLACK)
+      .text(cell.text, cellX + 4, y + rowHeight / 2 - 4.5, { width: cell.width - 8 });
+    cellX += cell.width;
   }
-
-  const startX = MARGIN;
-  const tableTop = doc.y;
-  let y = tableTop;
-
-  doc.rect(startX, y, CONTENT_WIDTH, 18).fill(color);
-  doc.font("Helvetica-Bold").fontSize(8).fillColor("#ffffff");
-  headers.forEach((header, i) => {
-    const x = startX + columnWidths.slice(0, i).reduce((a, b) => a + b, 0);
-    doc.text(header, x + 6, y + 5, { width: columnWidths[i] - 6 });
-  });
-  y += 18;
-
-  doc.font("Helvetica").fontSize(8.5).fillColor(COLORS.text);
-  rows.forEach((row, rowIndex) => {
-    if (y > 720) {
-      doc.rect(startX, tableTop, CONTENT_WIDTH, y - tableTop).lineWidth(1).stroke(COLORS.border);
-      doc.addPage();
-      y = MARGIN;
-    }
-    if (rowIndex % 2 === 1) {
-      doc.rect(startX, y, CONTENT_WIDTH, 16).fill(COLORS.rowAlt);
-      doc.fillColor(COLORS.text);
-    }
-    row.forEach((cell, i) => {
-      const x = startX + columnWidths.slice(0, i).reduce((a, b) => a + b, 0);
-      doc.text(String(cell), x + 6, y + 4, { width: columnWidths[i] - 6 });
-    });
-    y += 16;
-  });
-
-  doc.rect(startX, tableTop, CONTENT_WIDTH, y - tableTop).lineWidth(1).stroke(COLORS.border);
-  // Líneas verticales entre columnas.
-  columnWidths.slice(0, -1).reduce((x, w) => {
-    const lineX = x + w;
-    doc.moveTo(lineX, tableTop).lineTo(lineX, y).lineWidth(0.5).stroke(COLORS.border);
-    return lineX;
-  }, startX);
-
-  doc.y = y + 20;
-  doc.x = MARGIN;
-  doc.fillColor(COLORS.text);
-}
-
-function drawSignature(doc: PDFKit.PDFDocument) {
-  if (doc.y > 680) doc.addPage();
-  const y = doc.y + 20;
-
-  doc.moveTo(MARGIN, y).lineTo(MARGIN + 240, y).lineWidth(1).stroke(COLORS.border);
-  doc.font("Helvetica-Bold").fontSize(9).fillColor(COLORS.text).text("Firma", MARGIN, y + 6);
-
-  doc.moveTo(MARGIN + 280, y).lineTo(MARGIN + CONTENT_WIDTH, y).lineWidth(1).stroke(COLORS.border);
-  doc.font("Helvetica-Bold").fontSize(9).fillColor(COLORS.text).text("Fecha", MARGIN + 280, y + 6);
-
-  doc
-    .font("Helvetica")
-    .fontSize(9)
-    .fillColor(COLORS.muted)
-    .text("Coordinador de Operación", MARGIN, y + 22);
 }
 
 export async function GET(
@@ -203,17 +61,17 @@ export async function GET(
 
   const { data: reconciliations } = await supabase
     .from("reconciliations")
-    .select("service_number, novedad, collection_amount")
+    .select("service_number, client_document, novedad, collection_amount, service_date")
     .eq("client_id", clientId)
     .eq("city_id", cityId)
     .eq("cedi_code", cediCode)
     .eq("service_date", date)
-    .is("deleted_at", null);
+    .is("deleted_at", null)
+    .order("service_number");
 
   const rows = (reconciliations ?? []) as ReconciliationRow[];
   const sinNovedad = rows.filter((r) => !r.novedad);
   const conNovedad = rows.filter((r) => r.novedad);
-
   const sum = (list: { collection_amount: number }[]) =>
     list.reduce((acc, r) => acc + (r.collection_amount ?? 0), 0);
 
@@ -224,44 +82,183 @@ export async function GET(
     doc.on("end", () => resolve(Buffer.concat(chunks)));
   });
 
-  drawHeader(doc, "Informe de Conciliación", `Generado el ${formatDateTime(new Date().toISOString())}`);
+  // ---------- Título ----------
+  doc.font("Helvetica-Bold").fontSize(15).fillColor(BLACK).text("ACTA DE ENTREGA DE ÓRDENES", MARGIN, MARGIN, {
+    width: CONTENT_WIDTH,
+    align: "center",
+  });
+  doc.moveDown(0.8);
+  doc.font("Helvetica-Bold").fontSize(11).text("INFORMACIÓN GENERAL", MARGIN, doc.y, {
+    width: CONTENT_WIDTH,
+    align: "center",
+  });
+  doc.moveDown(0.5);
 
-  drawInfoBox(doc, [
-    ["Cliente", clientName],
-    ["Ciudad", cityName],
-    ["CEDI", `${cediName} (${cediCode})`],
-    ["Fecha", formatDate(date)],
-  ]);
-
-  drawStatCards(doc, [
-    { label: "SIN NOVEDAD", count: sinNovedad.length, amount: sum(sinNovedad), color: COLORS.sinNovedad },
-    { label: "CON NOVEDAD", count: conNovedad.length, amount: sum(conNovedad), color: COLORS.conNovedad },
-  ]);
-
-  const detailColumns = [200, 232, 100];
-  drawTable(
+  // ---------- Cuadro Ciudad / Nodo / Fecha / Código CEDI ----------
+  const infoRowHeight = 22;
+  const infoCols = [70, 196, 90, 176];
+  let y = doc.y;
+  drawGridRow(
     doc,
-    "Sin Novedad",
-    sinNovedad.length,
-    sum(sinNovedad),
-    COLORS.sinNovedad,
-    ["N° servicio", "Novedad", "Recaudo"],
-    sinNovedad.map((r) => [r.service_number, "Sin novedad", formatCurrency(r.collection_amount)]),
-    detailColumns,
+    MARGIN,
+    y,
+    [
+      { text: "Ciudad", width: infoCols[0], bold: true },
+      { text: cityName, width: infoCols[1] },
+      { text: "Nodo", width: infoCols[2], bold: true },
+      { text: cediName ?? "—", width: infoCols[3] },
+    ],
+    infoRowHeight,
   );
-
-  drawTable(
+  y += infoRowHeight;
+  drawGridRow(
     doc,
-    "Con Novedad",
-    conNovedad.length,
-    sum(conNovedad),
-    COLORS.conNovedad,
-    ["N° servicio", "Novedad", "Recaudo"],
-    conNovedad.map((r) => [r.service_number, r.novedad ?? "—", formatCurrency(r.collection_amount)]),
-    detailColumns,
+    MARGIN,
+    y,
+    [
+      { text: "Fecha", width: infoCols[0], bold: true },
+      { text: formatDate(date), width: infoCols[1] },
+      { text: "Código CEDI", width: infoCols[2], bold: true },
+      { text: cediCode, width: infoCols[3] },
+    ],
+    infoRowHeight,
   );
+  y += infoRowHeight + 16;
+  doc.y = y;
+  doc.x = MARGIN;
 
-  drawSignature(doc);
+  // ---------- Párrafo de constancia ----------
+  doc.font("Helvetica").fontSize(10).fillColor(BLACK).text(
+    "Por medio de la presente se deja constancia de la entrega de las siguientes órdenes correspondientes a la operación ",
+    MARGIN,
+    doc.y,
+    { width: CONTENT_WIDTH, continued: true, align: "justify" },
+  );
+  doc.font("Helvetica-Bold").text(clientName, { continued: true });
+  doc.font("Helvetica").text(", las cuales fueron verificadas y entregadas para su respectivo trámite.");
+  doc.moveDown(1);
+
+  // ---------- Tabla de órdenes ----------
+  const orderCols = [30, 90, 90, 90, 90, 142];
+  const headerHeight = 20;
+  y = doc.y;
+  drawGridRow(
+    doc,
+    MARGIN,
+    y,
+    [
+      { text: "Item", width: orderCols[0], bold: true, fontSize: 8 },
+      { text: "Nro. Servicio", width: orderCols[1], bold: true, fontSize: 8 },
+      { text: "Documento", width: orderCols[2], bold: true, fontSize: 8 },
+      { text: "Valor Recaudo", width: orderCols[3], bold: true, fontSize: 8 },
+      { text: "Fecha Servicio", width: orderCols[4], bold: true, fontSize: 8 },
+      { text: "Novedad", width: orderCols[5], bold: true, fontSize: 8 },
+    ],
+    headerHeight,
+  );
+  y += headerHeight;
+
+  const rowHeight = 18;
+  rows.forEach((r, i) => {
+    if (y + rowHeight > 740) {
+      doc.addPage();
+      y = MARGIN;
+    }
+    drawGridRow(
+      doc,
+      MARGIN,
+      y,
+      [
+        { text: String(i + 1), width: orderCols[0], fontSize: 8 },
+        { text: r.service_number, width: orderCols[1], fontSize: 8 },
+        { text: r.client_document ?? "—", width: orderCols[2], fontSize: 8 },
+        { text: formatCurrency(r.collection_amount), width: orderCols[3], fontSize: 8 },
+        { text: formatDate(r.service_date), width: orderCols[4], fontSize: 8 },
+        { text: r.novedad ?? "Sin novedad", width: orderCols[5], fontSize: 8 },
+      ],
+      rowHeight,
+    );
+    y += rowHeight;
+  });
+
+  if (rows.length === 0) {
+    drawGridRow(doc, MARGIN, y, [{ text: "Sin órdenes registradas.", width: CONTENT_WIDTH, fontSize: 8 }], rowHeight);
+    y += rowHeight;
+  }
+
+  y += 20;
+  doc.y = y;
+  doc.x = MARGIN;
+  if (doc.y > 700) {
+    doc.addPage();
+    doc.y = MARGIN;
+  }
+
+  // ---------- Resumen ----------
+  doc.font("Helvetica-Bold").fontSize(12).fillColor(BLACK).text("RESUMEN", MARGIN, doc.y);
+  doc.moveDown(0.4);
+
+  const resumenCols = [280, 100, 152];
+  const resumenRowHeight = 22;
+  y = doc.y;
+  const resumenRows: [string, number, number][] = [
+    ["Total de órdenes entregadas", rows.length, sum(rows)],
+    ["Sin novedad", sinNovedad.length, sum(sinNovedad)],
+    ["Con novedad", conNovedad.length, sum(conNovedad)],
+  ];
+  drawGridRow(
+    doc,
+    MARGIN,
+    y,
+    [
+      { text: "Concepto", width: resumenCols[0], bold: true },
+      { text: "Cantidad", width: resumenCols[1], bold: true },
+      { text: "Valor", width: resumenCols[2], bold: true },
+    ],
+    resumenRowHeight,
+  );
+  y += resumenRowHeight;
+  for (const [label, count, amount] of resumenRows) {
+    drawGridRow(
+      doc,
+      MARGIN,
+      y,
+      [
+        { text: label, width: resumenCols[0] },
+        { text: String(count), width: resumenCols[1] },
+        { text: formatCurrency(amount), width: resumenCols[2] },
+      ],
+      resumenRowHeight,
+    );
+    y += resumenRowHeight;
+  }
+
+  y += 20;
+  doc.moveTo(MARGIN, y).lineTo(MARGIN + CONTENT_WIDTH, y).lineWidth(1.5).stroke("#9ca3af");
+  y += 24;
+  doc.y = y;
+  doc.x = MARGIN;
+
+  if (doc.y > 680) {
+    doc.addPage();
+    doc.y = MARGIN;
+  }
+
+  // ---------- Responsable de la operación ----------
+  doc.font("Helvetica-Bold").fontSize(11).fillColor(BLACK).text("RESPONSABLE DE LA OPERACIÓN", MARGIN, doc.y);
+  doc.moveDown(1);
+
+  const lineWidth = CONTENT_WIDTH - 70;
+  for (const label of ["Nombre:", "Cargo:", "Firma:"]) {
+    const lineY = doc.y;
+    doc.font("Helvetica-Bold").fontSize(10).text(label, MARGIN, lineY);
+    doc
+      .moveTo(MARGIN + 55, lineY + 11)
+      .lineTo(MARGIN + 55 + lineWidth, lineY + 11)
+      .lineWidth(0.75)
+      .stroke(BLACK);
+    doc.y = lineY + 26;
+  }
 
   doc.end();
   const buffer = await donePromise;
@@ -269,7 +266,7 @@ export async function GET(
   return new Response(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="consolidado_${cediCode}_${date}.pdf"`,
+      "Content-Disposition": `attachment; filename="acta_entrega_${cediCode}_${date}.pdf"`,
     },
   });
 }
