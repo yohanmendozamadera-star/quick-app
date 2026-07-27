@@ -266,6 +266,7 @@ export async function GET(
   return new Response(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/pdf",
+      "Cache-Control": "no-store",
       "Content-Disposition": `attachment; filename="acta_entrega_${cediCode}_${date}.pdf"`,
     },
   });

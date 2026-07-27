@@ -180,6 +180,7 @@ export async function GET(request: Request) {
   return new Response(buffer, {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "Cache-Control": "no-store",
       "Content-Disposition": `attachment; filename="${fileName}"`,
     },
   });
