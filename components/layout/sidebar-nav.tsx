@@ -3,23 +3,27 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { Building2, ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { NAV_ITEMS, type NavItem } from "@/lib/nav-items";
+import { NAV_ITEMS, isNavGroup, type NavChild, type NavGroup } from "@/lib/nav-items";
 import { getFiltersForPath } from "@/lib/session-nav-filters";
 import type { CatalogOption } from "@/lib/catalog/queries";
 
-function clientToNavItem(client: CatalogOption): NavItem {
-  return {
-    href: `/clientes/${client.id}`,
+function conciliacionChildren(clients: CatalogOption[]): NavGroup[] {
+  return clients.map((client) => ({
     label: client.name,
-    icon: Building2,
-    permission: "conciliacion.view",
     children: [
+      { href: `/conciliacion?client=${client.id}`, label: "Conciliaciones" },
       { href: `/clientes/${client.id}/consolidado`, label: "Consolidado" },
       { href: `/clientes/${client.id}/paz-y-salvos`, label: "Paz y Salvos" },
     ],
-  };
+  }));
+}
+
+function hasActiveDescendant(children: (NavChild | NavGroup)[], pathname: string): boolean {
+  return children.some((child) =>
+    isNavGroup(child) ? hasActiveDescendant(child.children, pathname) : pathname.startsWith(child.href),
+  );
 }
 
 export function SidebarNav({
@@ -36,27 +40,42 @@ export function SidebarNav({
   const pathname = usePathname();
   const router = useRouter();
 
-  const items = [...NAV_ITEMS, ...clients.map(clientToNavItem)].filter((item) =>
-    permissions.includes(item.permission),
-  );
+  const items = NAV_ITEMS.map((item) =>
+    item.href === "/conciliacion" ? { ...item, children: conciliacionChildren(clients) } : item,
+  ).filter((item) => permissions.includes(item.permission));
 
   const [expanded, setExpanded] = useState<Set<string>>(() => {
     const initial = new Set<string>();
     for (const item of items) {
-      if (item.children?.some((child) => pathname.startsWith(child.href))) {
-        initial.add(item.href);
+      if (!item.children) continue;
+      if (hasActiveDescendant(item.children, pathname)) initial.add(item.href);
+      for (const child of item.children) {
+        if (isNavGroup(child) && hasActiveDescendant(child.children, pathname)) {
+          initial.add(`${item.href}|${child.label}`);
+        }
       }
     }
     return initial;
   });
 
-  const toggle = (href: string) => {
+  const toggle = (key: string) => {
     setExpanded((prev) => {
       const next = new Set(prev);
-      if (next.has(href)) next.delete(href);
-      else next.add(href);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
+  };
+
+  // Si ya visitaste este módulo en esta sesión, se restauran los filtros que
+  // dejaste (en vez de siempre abrir la vista limpia).
+  const navLinkClick = (href: string) => (e: React.MouseEvent) => {
+    const savedQuery = getFiltersForPath(href);
+    if (savedQuery) {
+      e.preventDefault();
+      router.push(`${href}?${savedQuery}`);
+    }
+    onNavigate?.();
   };
 
   return (
@@ -66,7 +85,7 @@ export function SidebarNav({
 
         if (item.children && item.children.length > 0) {
           const isExpanded = expanded.has(item.href);
-          const active = item.children.some((child) => pathname.startsWith(child.href));
+          const active = hasActiveDescendant(item.children, pathname);
           return (
             <div key={item.href}>
               <button
@@ -96,19 +115,61 @@ export function SidebarNav({
               {!collapsed && isExpanded && (
                 <div className="ml-4 flex flex-col gap-1 border-l pl-3">
                   {item.children.map((child) => {
+                    if (isNavGroup(child)) {
+                      const groupKey = `${item.href}|${child.label}`;
+                      const groupExpanded = expanded.has(groupKey);
+                      const groupActive = hasActiveDescendant(child.children, pathname);
+                      return (
+                        <div key={child.label}>
+                          <button
+                            type="button"
+                            onClick={() => toggle(groupKey)}
+                            className={cn(
+                              "flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                              groupActive
+                                ? "text-foreground"
+                                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                            )}
+                          >
+                            <span className="flex-1 text-left">{child.label}</span>
+                            {groupExpanded ? (
+                              <ChevronDown className="size-4 shrink-0" />
+                            ) : (
+                              <ChevronRight className="size-4 shrink-0" />
+                            )}
+                          </button>
+                          {groupExpanded && (
+                            <div className="ml-3 flex flex-col gap-1 border-l pl-3">
+                              {child.children.map((grandchild) => {
+                                const grandchildActive = pathname.startsWith(grandchild.href);
+                                return (
+                                  <Link
+                                    key={grandchild.href}
+                                    href={grandchild.href}
+                                    onClick={navLinkClick(grandchild.href)}
+                                    className={cn(
+                                      "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                                      grandchildActive
+                                        ? "bg-primary text-primary-foreground"
+                                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                                    )}
+                                  >
+                                    {grandchild.label}
+                                  </Link>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+
                     const childActive = pathname.startsWith(child.href);
                     return (
                       <Link
                         key={child.href}
                         href={child.href}
-                        onClick={(e) => {
-                          const savedQuery = getFiltersForPath(child.href);
-                          if (savedQuery) {
-                            e.preventDefault();
-                            router.push(`${child.href}?${savedQuery}`);
-                          }
-                          onNavigate?.();
-                        }}
+                        onClick={navLinkClick(child.href)}
                         className={cn(
                           "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                           childActive
@@ -131,16 +192,7 @@ export function SidebarNav({
           <Link
             key={item.href}
             href={item.href}
-            onClick={(e) => {
-              // Si ya visitaste este módulo en esta sesión, se restauran los
-              // filtros que dejaste (en vez de siempre abrir la vista limpia).
-              const savedQuery = getFiltersForPath(item.href);
-              if (savedQuery) {
-                e.preventDefault();
-                router.push(`${item.href}?${savedQuery}`);
-              }
-              onNavigate?.();
-            }}
+            onClick={navLinkClick(item.href)}
             title={collapsed ? item.label : undefined}
             className={cn(
               "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",

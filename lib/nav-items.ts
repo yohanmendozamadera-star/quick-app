@@ -15,13 +15,23 @@ export type NavChild = {
   label: string;
 };
 
+/** Grupo intermedio dentro de un NavItem: un toggle (sin href propio) cuyos hijos son links. */
+export type NavGroup = {
+  label: string;
+  children: NavChild[];
+};
+
 export type NavItem = {
   href: string;
   label: string;
   icon: LucideIcon;
   permission: string;
-  children?: NavChild[];
+  children?: (NavChild | NavGroup)[];
 };
+
+export function isNavGroup(child: NavChild | NavGroup): child is NavGroup {
+  return !("href" in child);
+}
 
 export const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, permission: "dashboard.view" },
