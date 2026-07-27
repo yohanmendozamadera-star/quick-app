@@ -3,14 +3,14 @@ export type ConsolidadoDetailRow = {
   city_id: string;
   cedi_code: string;
   cedi_name: string | null;
-  total_count: number;
-  total_amount: number;
-  sin_novedad_count: number;
-  sin_novedad_amount: number;
-  con_novedad_count: number;
-  con_novedad_amount: number;
+  recoleccion_count: number;
+  recoleccion_amount: number;
+  conciliado_count: number;
+  conciliado_amount: number;
   reprogramada_count: number;
   reprogramada_amount: number;
+  pendiente_count: number;
+  pendiente_amount: number;
 };
 
 export type ConsolidadoFilters = {
@@ -22,14 +22,14 @@ export type ConsolidadoFilters = {
 export type ConsolidadoCediRow = {
   cediCode: string;
   cediName: string | null;
-  totalCount: number;
-  totalAmount: number;
-  sinNovedadCount: number;
-  sinNovedadAmount: number;
-  conNovedadCount: number;
-  conNovedadAmount: number;
+  recoleccionCount: number;
+  recoleccionAmount: number;
+  conciliadoCount: number;
+  conciliadoAmount: number;
   reprogramadaCount: number;
   reprogramadaAmount: number;
+  pendienteCount: number;
+  pendienteAmount: number;
 };
 
 export type ConsolidadoCityRow = {

@@ -5,43 +5,44 @@ import { ChevronDown, ChevronRight, FileText } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/format";
 import type { ConsolidadoDateRow, ConsolidadoCediRow } from "@/lib/consolidado/types";
 import type { CatalogOption } from "@/lib/catalog/queries";
+import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type Totals = {
-  totalCount: number;
-  totalAmount: number;
-  sinNovedadCount: number;
-  sinNovedadAmount: number;
-  conNovedadCount: number;
-  conNovedadAmount: number;
+  recoleccionCount: number;
+  recoleccionAmount: number;
+  conciliadoCount: number;
+  conciliadoAmount: number;
   reprogramadaCount: number;
   reprogramadaAmount: number;
+  pendienteCount: number;
+  pendienteAmount: number;
 };
 
 function emptyTotals(): Totals {
   return {
-    totalCount: 0,
-    totalAmount: 0,
-    sinNovedadCount: 0,
-    sinNovedadAmount: 0,
-    conNovedadCount: 0,
-    conNovedadAmount: 0,
+    recoleccionCount: 0,
+    recoleccionAmount: 0,
+    conciliadoCount: 0,
+    conciliadoAmount: 0,
     reprogramadaCount: 0,
     reprogramadaAmount: 0,
+    pendienteCount: 0,
+    pendienteAmount: 0,
   };
 }
 
 function addTotals(acc: Totals, row: Totals): Totals {
   return {
-    totalCount: acc.totalCount + row.totalCount,
-    totalAmount: acc.totalAmount + row.totalAmount,
-    sinNovedadCount: acc.sinNovedadCount + row.sinNovedadCount,
-    sinNovedadAmount: acc.sinNovedadAmount + row.sinNovedadAmount,
-    conNovedadCount: acc.conNovedadCount + row.conNovedadCount,
-    conNovedadAmount: acc.conNovedadAmount + row.conNovedadAmount,
+    recoleccionCount: acc.recoleccionCount + row.recoleccionCount,
+    recoleccionAmount: acc.recoleccionAmount + row.recoleccionAmount,
+    conciliadoCount: acc.conciliadoCount + row.conciliadoCount,
+    conciliadoAmount: acc.conciliadoAmount + row.conciliadoAmount,
     reprogramadaCount: acc.reprogramadaCount + row.reprogramadaCount,
     reprogramadaAmount: acc.reprogramadaAmount + row.reprogramadaAmount,
+    pendienteCount: acc.pendienteCount + row.pendienteCount,
+    pendienteAmount: acc.pendienteAmount + row.pendienteAmount,
   };
 }
 
@@ -55,20 +56,30 @@ function Metric({ count, amount }: { count: number; amount: number }) {
   );
 }
 
+function EstadoBadge({ pendienteCount }: { pendienteCount: number }) {
+  if (pendienteCount > 0) {
+    return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Abierto</Badge>;
+  }
+  return <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">Cerrado</Badge>;
+}
+
 function MetricCells({ totals }: { totals: Totals }) {
   return (
     <>
       <td className="px-3 py-2.5">
-        <Metric count={totals.totalCount} amount={totals.totalAmount} />
+        <Metric count={totals.recoleccionCount} amount={totals.recoleccionAmount} />
       </td>
       <td className="px-3 py-2.5">
-        <Metric count={totals.sinNovedadCount} amount={totals.sinNovedadAmount} />
-      </td>
-      <td className="px-3 py-2.5">
-        <Metric count={totals.conNovedadCount} amount={totals.conNovedadAmount} />
+        <Metric count={totals.conciliadoCount} amount={totals.conciliadoAmount} />
       </td>
       <td className="px-3 py-2.5">
         <Metric count={totals.reprogramadaCount} amount={totals.reprogramadaAmount} />
+      </td>
+      <td className="px-3 py-2.5">
+        <Metric count={totals.pendienteCount} amount={totals.pendienteAmount} />
+      </td>
+      <td className="px-3 py-2.5">
+        <EstadoBadge pendienteCount={totals.pendienteCount} />
       </td>
     </>
   );
@@ -107,14 +118,14 @@ export function ConsolidadoTable({
   const cityName = (id: string) => cities.find((c) => c.id === id)?.name ?? "Sin ciudad";
 
   const cediTotals = (c: ConsolidadoCediRow): Totals => ({
-    totalCount: c.totalCount,
-    totalAmount: c.totalAmount,
-    sinNovedadCount: c.sinNovedadCount,
-    sinNovedadAmount: c.sinNovedadAmount,
-    conNovedadCount: c.conNovedadCount,
-    conNovedadAmount: c.conNovedadAmount,
+    recoleccionCount: c.recoleccionCount,
+    recoleccionAmount: c.recoleccionAmount,
+    conciliadoCount: c.conciliadoCount,
+    conciliadoAmount: c.conciliadoAmount,
     reprogramadaCount: c.reprogramadaCount,
     reprogramadaAmount: c.reprogramadaAmount,
+    pendienteCount: c.pendienteCount,
+    pendienteAmount: c.pendienteAmount,
   });
 
   return (
@@ -124,17 +135,18 @@ export function ConsolidadoTable({
           <tr>
             <th className="w-8 px-3 py-2.5" />
             <th className="px-3 py-2.5">Fecha / Ciudad / CEDI</th>
+            <th className="px-3 py-2.5">Total recolectado</th>
             <th className="px-3 py-2.5">Total conciliado</th>
-            <th className="px-3 py-2.5">Sin novedad</th>
-            <th className="px-3 py-2.5">Con novedad</th>
-            <th className="px-3 py-2.5">Reprogramados</th>
+            <th className="px-3 py-2.5">Reprogramadas</th>
+            <th className="px-3 py-2.5">Total pendientes</th>
+            <th className="px-3 py-2.5">Estado</th>
             <th className="w-10 px-3 py-2.5" />
           </tr>
         </thead>
         <tbody className="divide-y">
           {dateRows.length === 0 && (
             <tr>
-              <td colSpan={7} className="px-3 py-10 text-center text-muted-foreground">
+              <td colSpan={8} className="px-3 py-10 text-center text-muted-foreground">
                 No hay conciliaciones registradas en este rango de fechas.
               </td>
             </tr>

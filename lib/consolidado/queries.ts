@@ -38,14 +38,14 @@ export function buildConsolidadoDateRows(detailRows: ConsolidadoDetailRow[]): Co
       cedis: cityRows.map((r) => ({
         cediCode: r.cedi_code,
         cediName: r.cedi_name,
-        totalCount: Number(r.total_count ?? 0),
-        totalAmount: Number(r.total_amount ?? 0),
-        sinNovedadCount: Number(r.sin_novedad_count ?? 0),
-        sinNovedadAmount: Number(r.sin_novedad_amount ?? 0),
-        conNovedadCount: Number(r.con_novedad_count ?? 0),
-        conNovedadAmount: Number(r.con_novedad_amount ?? 0),
+        recoleccionCount: Number(r.recoleccion_count ?? 0),
+        recoleccionAmount: Number(r.recoleccion_amount ?? 0),
+        conciliadoCount: Number(r.conciliado_count ?? 0),
+        conciliadoAmount: Number(r.conciliado_amount ?? 0),
         reprogramadaCount: Number(r.reprogramada_count ?? 0),
         reprogramadaAmount: Number(r.reprogramada_amount ?? 0),
+        pendienteCount: Number(r.pendiente_count ?? 0),
+        pendienteAmount: Number(r.pendiente_amount ?? 0),
       })),
     }));
 
