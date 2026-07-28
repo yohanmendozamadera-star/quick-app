@@ -51,11 +51,12 @@ export async function GET(
 
   const { clientId } = await params;
   const { searchParams } = new URL(request.url);
-  const date = searchParams.get("date");
+  const dateFrom = searchParams.get("dateFrom");
+  const dateTo = searchParams.get("dateTo");
   const cityId = searchParams.get("cityId");
   const cediCode = searchParams.get("cediCode");
 
-  if (!clientId || !date || !cityId || !cediCode) {
+  if (!clientId || !dateFrom || !dateTo || !cityId || !cediCode) {
     return new Response("Parámetros incompletos", { status: 400 });
   }
 
@@ -69,33 +70,19 @@ export async function GET(
 
   const supabase = await createClient();
 
-  // La fecha de esta fila viene de collections.service_date (recolección), no de
-  // reconciliations.service_date/reconciliation_date — que suelen quedar
-  // desfasados unos días respecto a cuándo se recolectó. Para encontrar las
-  // conciliaciones correctas se parte de las recolecciones de ese día/cedi y se
-  // sigue el enlace collections.reconciliation_id, en vez de comparar fechas.
-  const { data: collections } = await supabase
-    .from("collections")
-    .select("reconciliation_id")
+  // El informe se genera con el filtro de fecha aplicado en Consolidado, que es
+  // la fecha de conciliación (cuándo se cargó/procesó el archivo), no la fecha
+  // de servicio — así "filtrar por hoy" trae exactamente lo conciliado hoy.
+  const { data: reconciliations } = await supabase
+    .from("reconciliations")
+    .select("service_number, client_document, novedad, collection_amount, service_date")
     .eq("client_id", clientId)
     .eq("city_id", cityId)
     .eq("cedi_code", cediCode)
-    .eq("service_date", date)
-    .is("deleted_at", null);
-
-  const reconciliationIds = (collections ?? [])
-    .map((c) => c.reconciliation_id)
-    .filter((id): id is string => Boolean(id));
-
-  const { data: reconciliations } =
-    reconciliationIds.length > 0
-      ? await supabase
-          .from("reconciliations")
-          .select("service_number, client_document, novedad, collection_amount, service_date")
-          .in("id", reconciliationIds)
-          .is("deleted_at", null)
-          .order("service_number")
-      : { data: [] };
+    .gte("reconciliation_date", dateFrom)
+    .lte("reconciliation_date", dateTo)
+    .is("deleted_at", null)
+    .order("service_number");
 
   const rows = (reconciliations ?? []) as ReconciliationRow[];
   const sinNovedad = rows.filter((r) => isSinNovedad(r.novedad));
@@ -145,7 +132,10 @@ export async function GET(
     y,
     [
       { text: "Fecha", width: infoCols[0], bold: true },
-      { text: formatDate(date), width: infoCols[1] },
+      {
+        text: dateFrom === dateTo ? formatDate(dateFrom) : `${formatDate(dateFrom)} - ${formatDate(dateTo)}`,
+        width: infoCols[1],
+      },
       { text: "Código CEDI", width: infoCols[2], bold: true },
       { text: cediCode, width: infoCols[3] },
     ],
@@ -295,7 +285,7 @@ export async function GET(
     headers: {
       "Content-Type": "application/pdf",
       "Cache-Control": "no-store",
-      "Content-Disposition": `attachment; filename="acta_entrega_${cediCode}_${date}.pdf"`,
+      "Content-Disposition": `attachment; filename="acta_entrega_${cediCode}_${dateFrom}_${dateTo}.pdf"`,
     },
   });
 }

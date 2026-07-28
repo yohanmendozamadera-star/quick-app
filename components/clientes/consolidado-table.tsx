@@ -80,10 +80,14 @@ export function ConsolidadoTable({
   clientId,
   dateRows,
   cities,
+  filterDateFrom,
+  filterDateTo,
 }: {
   clientId: string;
   dateRows: ConsolidadoDateRow[];
   cities: CatalogOption[];
+  filterDateFrom: string;
+  filterDateTo: string;
 }) {
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
   const [expandedCities, setExpandedCities] = useState<Set<string>>(new Set());
@@ -182,7 +186,8 @@ export function ConsolidadoTable({
                         {cityOpen &&
                           cityRow.cedis.map((cedi) => {
                             const informeParams = new URLSearchParams({
-                              date: dateRow.date,
+                              dateFrom: filterDateFrom,
+                              dateTo: filterDateTo,
                               cityId: cityRow.cityId,
                               cediCode: cedi.cediCode,
                               cediName: cedi.cediName ?? cedi.cediCode,
