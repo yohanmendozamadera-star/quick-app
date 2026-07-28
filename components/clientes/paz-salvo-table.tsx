@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useState } from "react";
-import { ChevronDown, ChevronRight, FileText, CheckCircle2 } from "lucide-react";
+import { ChevronDown, ChevronRight, FileText, CheckCircle2, Lock } from "lucide-react";
 import { formatDateTime } from "@/lib/format";
 import type { PazSalvoPeriodRow } from "@/lib/paz-salvo/types";
 import type { CatalogOption } from "@/lib/catalog/queries";
@@ -131,7 +131,7 @@ export function PazSalvoTable({
 
                         {cityOpen &&
                           cityRow.cedis.map((cedi) => {
-                            const documentType = cedi.pendingCount === 0 ? "paz_y_salvo" : "compromiso";
+                            const canGenerate = cedi.pendingCount === 0;
                             const informeParams = new URLSearchParams({
                               cediCode: cedi.cediCode,
                               cityId: cityRow.cityId,
@@ -149,30 +149,40 @@ export function PazSalvoTable({
                                   <EstadoBadge pendingCount={cedi.pendingCount} />
                                 </td>
                                 <td className="px-3 py-2.5">
-                                  <div className="flex items-center gap-1">
-                                    <a
-                                      href={`/clientes/${clientId}/paz-y-salvos/informe?${informeParams.toString()}`}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      aria-label="Generar documento"
-                                      className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }))}
+                                  {canGenerate ? (
+                                    <div className="flex items-center gap-1">
+                                      <a
+                                        href={`/clientes/${clientId}/paz-y-salvos/informe?${informeParams.toString()}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        aria-label="Generar Paz y Salvo"
+                                        className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }))}
+                                      >
+                                        <FileText className="size-4" />
+                                      </a>
+                                      <PazSalvoUploadDialog
+                                        clientId={clientId}
+                                        cityId={cityRow.cityId}
+                                        cediCode={cedi.cediCode}
+                                        cediName={cedi.cediName}
+                                        period={periodRow.period}
+                                        documentType="paz_y_salvo"
+                                      />
+                                      {cedi.document && (
+                                        <span title={`Firmado el ${formatDateTime(cedi.document.uploadedAt)}`}>
+                                          <CheckCircle2 className="size-4 text-emerald-600" />
+                                        </span>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <span
+                                      className="inline-flex items-center gap-1 text-xs text-muted-foreground"
+                                      title="No se puede generar el Paz y Salvo mientras queden órdenes pendientes"
                                     >
-                                      <FileText className="size-4" />
-                                    </a>
-                                    <PazSalvoUploadDialog
-                                      clientId={clientId}
-                                      cityId={cityRow.cityId}
-                                      cediCode={cedi.cediCode}
-                                      cediName={cedi.cediName}
-                                      period={periodRow.period}
-                                      documentType={documentType}
-                                    />
-                                    {cedi.document && (
-                                      <span title={`Firmado el ${formatDateTime(cedi.document.uploadedAt)}`}>
-                                        <CheckCircle2 className="size-4 text-emerald-600" />
-                                      </span>
-                                    )}
-                                  </div>
+                                      <Lock className="size-3.5" />
+                                      Aún debe
+                                    </span>
+                                  )}
                                 </td>
                               </tr>
                             );
