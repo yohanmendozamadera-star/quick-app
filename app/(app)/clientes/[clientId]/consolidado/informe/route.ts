@@ -3,6 +3,7 @@ import { getCurrentUser, can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { getAllClients, getAllCities, getAllCedis } from "@/lib/catalog/queries";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { getQuickLogoBuffer } from "@/lib/pdf/logo";
 
 type ReconciliationRow = {
   service_number: string;
@@ -98,6 +99,7 @@ export async function GET(
   });
 
   // ---------- Título ----------
+  doc.image(getQuickLogoBuffer(), PAGE_WIDTH - MARGIN - 34, MARGIN - 6, { width: 34, height: 34 });
   doc.font("Helvetica-Bold").fontSize(15).fillColor(BLACK).text("ACTA DE ENTREGA DE ÓRDENES", MARGIN, MARGIN, {
     width: CONTENT_WIDTH,
     align: "center",

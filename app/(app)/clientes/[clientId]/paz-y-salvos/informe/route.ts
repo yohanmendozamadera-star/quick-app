@@ -3,6 +3,7 @@ import { getCurrentUser, can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { getAllCities, getAllCedis } from "@/lib/catalog/queries";
 import { getTodayBogota } from "@/lib/format";
+import { getQuickLogoBuffer } from "@/lib/pdf/logo";
 
 const PAGE_WIDTH = 612;
 const MARGIN = 50;
@@ -80,17 +81,17 @@ export async function GET(
   const headerY = MARGIN;
   doc.font("Helvetica").fontSize(11).fillColor(BLACK).text(dateLine, MARGIN, headerY, { width: 260 });
 
-  doc.font("Helvetica-Bold").fontSize(20).text("Quick", MARGIN + 340, headerY, { width: 130, align: "right" });
+  doc.image(getQuickLogoBuffer(), PAGE_WIDTH - MARGIN - 40, headerY - 4, { width: 40, height: 40 });
   doc
     .font("Helvetica-Oblique")
     .fontSize(8)
     .fillColor(MUTED)
-    .text("Transversal 93 N 51-98 Bodega 24-25", MARGIN + 260, headerY + 26, { width: 210, align: "right" })
-    .text("Complejo empresarial Puertas del sol", MARGIN + 260, headerY + 37, { width: 210, align: "right" })
-    .text("Quick Help SAS Nit: 830124778-5", MARGIN + 260, headerY + 48, { width: 210, align: "right" });
+    .text("Transversal 93 N 51-98 Bodega 24-25", MARGIN + 260, headerY + 40, { width: 210, align: "right" })
+    .text("Complejo empresarial Puertas del sol", MARGIN + 260, headerY + 51, { width: 210, align: "right" })
+    .text("Quick Help SAS Nit: 830124778-5", MARGIN + 260, headerY + 62, { width: 210, align: "right" });
 
   doc.fillColor(BLACK);
-  doc.y = headerY + 80;
+  doc.y = headerY + 90;
   doc.x = MARGIN;
 
   // ---------- Cuerpo de la carta ----------
@@ -152,16 +153,16 @@ export async function GET(
 
   // ---------- Pie de página ----------
   const footerY = 700;
-  doc.font("Helvetica-Bold").fontSize(14).fillColor(BLACK).text("Quick", MARGIN, footerY);
+  doc.image(getQuickLogoBuffer(), MARGIN, footerY - 4, { width: 26, height: 26 });
   doc
     .font("Helvetica")
     .fontSize(9)
     .fillColor(MUTED)
-    .text("La forma más fácil de hacer tu Logística — supply · express · clean · global", MARGIN + 60, footerY + 3);
+    .text("La forma más fácil de hacer tu Logística — supply · express · clean · global", MARGIN + 34, footerY + 3);
   doc
     .font("Helvetica")
     .fontSize(8)
-    .text("Tel: (+57) 747 0547 · Correo: sac@quick.com.co · www.quick.com.co", MARGIN, footerY + 20);
+    .text("Tel: (+57) 747 0547 · Correo: sac@quick.com.co · www.quick.com.co", MARGIN, footerY + 26);
 
   doc.end();
   const buffer = await donePromise;
