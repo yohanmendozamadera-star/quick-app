@@ -8,14 +8,16 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { getTodayBogota } from "@/lib/format";
 import { saveFiltersForPath } from "@/lib/session-nav-filters";
-import type { CatalogOption } from "@/lib/catalog/queries";
+import type { CatalogOption, CediOption } from "@/lib/catalog/queries";
 
 export function ReconciliationsFilters({
   clients,
   cities,
+  cedis,
 }: {
   clients: CatalogOption[];
   cities: CatalogOption[];
+  cedis: CediOption[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -58,8 +60,10 @@ export function ReconciliationsFilters({
 
   const hasFilters = Array.from(searchParams.keys()).some((k) => k !== "sort" && k !== "dir" && k !== "pageSize");
 
-  const dateFromValue = searchParams.has("sfrom") ? (searchParams.get("sfrom") ?? "") : getTodayBogota();
-  const dateToValue = searchParams.has("sto") ? (searchParams.get("sto") ?? "") : getTodayBogota();
+  const dateFromValue = searchParams.has("cfrom") ? (searchParams.get("cfrom") ?? "") : getTodayBogota();
+  const dateToValue = searchParams.has("cto") ? (searchParams.get("cto") ?? "") : getTodayBogota();
+  const selectedCityId = searchParams.get("city") ?? "";
+  const cediOptions = selectedCityId ? cedis.filter((c) => c.city_id === selectedCityId) : cedis;
 
   // Recuerda los filtros actuales para que, si vas a otro módulo y regresas
   // por el menú, se restauren en vez de reiniciar a los valores por defecto.
@@ -81,24 +85,24 @@ export function ReconciliationsFilters({
         </div>
 
         <div className="space-y-1">
-          <Label htmlFor="sfrom">Fecha del servicio desde</Label>
+          <Label htmlFor="cfrom">Fecha de conciliación desde</Label>
           <Input
-            id="sfrom"
+            id="cfrom"
             type="date"
             key={dateFromValue}
             defaultValue={dateFromValue}
-            onChange={(e) => updateDateParam("sfrom", e.target.value)}
+            onChange={(e) => updateDateParam("cfrom", e.target.value)}
           />
         </div>
 
         <div className="space-y-1">
-          <Label htmlFor="sto">Fecha del servicio hasta</Label>
+          <Label htmlFor="cto">Fecha de conciliación hasta</Label>
           <Input
-            id="sto"
+            id="cto"
             type="date"
             key={dateToValue}
             defaultValue={dateToValue}
-            onChange={(e) => updateDateParam("sto", e.target.value)}
+            onChange={(e) => updateDateParam("cto", e.target.value)}
           />
         </div>
 
@@ -131,6 +135,23 @@ export function ReconciliationsFilters({
             {cities.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="space-y-1">
+          <Label htmlFor="cedi">Nodo</Label>
+          <select
+            id="cedi"
+            className="h-9 w-full rounded-md border bg-transparent px-2 text-sm"
+            defaultValue={searchParams.get("cedi") ?? ""}
+            onChange={(e) => updateParam("cedi", e.target.value)}
+          >
+            <option value="">Todos</option>
+            {cediOptions.map((c) => (
+              <option key={c.id} value={c.code}>
+                {c.name} ({c.code})
               </option>
             ))}
           </select>

@@ -1,7 +1,7 @@
-import { Download } from "lucide-react";
+import { Download, FileText } from "lucide-react";
 import { getCurrentUser, can } from "@/lib/permissions";
 import { getReconciliations } from "@/lib/reconciliations/queries";
-import { getClients, getVisibleCities, getLoadTypes, getCedis } from "@/lib/catalog/queries";
+import { getClients, getVisibleCities, getLoadTypes, getCedis, getVisibleCedis } from "@/lib/catalog/queries";
 import { DEFAULT_PAGE_SIZE, type ReconciliationsSort } from "@/lib/reconciliations/types";
 import { ModulePlaceholder } from "@/components/layout/module-placeholder";
 import { ReconciliationsFilters } from "@/components/conciliacion/reconciliations-filters";
@@ -51,11 +51,11 @@ export default async function ConciliacionPage({
     direction: str(sp, "dir") === "asc" ? "asc" : "desc",
   };
 
-  // "Fecha del servicio" desde/hasta parte de hoy por defecto (igual que en
-  // Recolección). Si se dejan vacías a propósito (?sfrom=/?sto=), quedan sin
-  // límite.
-  const dateFrom = "sfrom" in sp ? str(sp, "sfrom") || undefined : getTodayBogota();
-  const dateTo = "sto" in sp ? str(sp, "sto") || undefined : getTodayBogota();
+  // "Fecha de conciliación" desde/hasta parte de hoy por defecto (cuándo se
+  // cargó el archivo, no la fecha de servicio). Si se dejan vacías a
+  // propósito (?cfrom=/?cto=), quedan sin límite.
+  const dateFrom = "cfrom" in sp ? str(sp, "cfrom") || undefined : getTodayBogota();
+  const dateTo = "cto" in sp ? str(sp, "cto") || undefined : getTodayBogota();
 
   const filters = {
     search: str(sp, "q"),
@@ -63,14 +63,16 @@ export default async function ConciliacionPage({
     dateTo,
     clientId: str(sp, "client"),
     cityId: str(sp, "city"),
+    cediCode: str(sp, "cedi"),
   };
 
-  const [{ rows, count, totals }, clients, cities, loadTypes, cedis] = await Promise.all([
+  const [{ rows, count, totals }, clients, cities, loadTypes, cedis, visibleCedis] = await Promise.all([
     getReconciliations({ filters, sort, page, pageSize }),
     getClients(),
     getVisibleCities(),
     getLoadTypes(),
     getCedis(),
+    getVisibleCedis(),
   ]);
 
   const canCreate = can(permissions, "conciliacion.create");
@@ -79,12 +81,28 @@ export default async function ConciliacionPage({
 
   const exportParams = new URLSearchParams();
   if (filters.search) exportParams.set("q", filters.search);
-  if (filters.dateFrom) exportParams.set("sfrom", filters.dateFrom);
-  if (filters.dateTo) exportParams.set("sto", filters.dateTo);
+  if (filters.dateFrom) exportParams.set("cfrom", filters.dateFrom);
+  if (filters.dateTo) exportParams.set("cto", filters.dateTo);
   if (filters.clientId) exportParams.set("client", filters.clientId);
   if (filters.cityId) exportParams.set("city", filters.cityId);
+  if (filters.cediCode) exportParams.set("cedi", filters.cediCode);
   exportParams.set("sort", sort.column);
   exportParams.set("dir", sort.direction);
+
+  // El Acta solo tiene sentido con una identidad completa: cliente + ciudad +
+  // nodo puntuales (no "Todos"), usando el rango de fechas de conciliación
+  // ya filtrado en esta misma vista.
+  const canGenerateActa =
+    can(permissions, "conciliacion.export") && filters.clientId && filters.cityId && filters.cediCode;
+  const selectedCedi = visibleCedis.find((c) => c.code === filters.cediCode);
+  const informeParams = new URLSearchParams();
+  if (canGenerateActa) {
+    informeParams.set("dateFrom", filters.dateFrom || getTodayBogota());
+    informeParams.set("dateTo", filters.dateTo || getTodayBogota());
+    informeParams.set("cityId", filters.cityId!);
+    informeParams.set("cediCode", filters.cediCode!);
+    informeParams.set("cediName", selectedCedi?.name ?? filters.cediCode!);
+  }
 
   return (
     <div className="space-y-4">
@@ -98,6 +116,17 @@ export default async function ConciliacionPage({
         </div>
 
         <div className="flex flex-wrap gap-2">
+          {canGenerateActa && (
+            <a
+              href={`/clientes/${filters.clientId}/consolidado/informe?${informeParams.toString()}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(buttonVariants({ variant: "outline" }), "gap-1.5")}
+            >
+              <FileText className="size-4" />
+              Generar Acta del Nodo
+            </a>
+          )}
           {canExport && (
             <a
               href={`/conciliacion/export?${exportParams.toString()}`}
@@ -112,7 +141,7 @@ export default async function ConciliacionPage({
         </div>
       </div>
 
-      <ReconciliationsFilters clients={clients} cities={cities} />
+      <ReconciliationsFilters clients={clients} cities={cities} cedis={visibleCedis} />
 
       <ReconciliationsTable
         rows={rows}

@@ -44,10 +44,11 @@ export async function GET(request: Request) {
 
   const filters: ReconciliationsFilters = {
     search: str(searchParams, "q"),
-    dateFrom: str(searchParams, "sfrom"),
-    dateTo: str(searchParams, "sto"),
+    dateFrom: str(searchParams, "cfrom"),
+    dateTo: str(searchParams, "cto"),
     clientId: str(searchParams, "client"),
     cityId: str(searchParams, "city"),
+    cediCode: str(searchParams, "cedi"),
   };
 
   const supabase = await createClient();
@@ -62,8 +63,9 @@ export async function GET(request: Request) {
 
     if (filters.clientId) query = query.eq("client_id", filters.clientId);
     if (filters.cityId) query = query.eq("city_id", filters.cityId);
-    if (filters.dateFrom) query = query.gte("service_date", filters.dateFrom);
-    if (filters.dateTo) query = query.lte("service_date", filters.dateTo);
+    if (filters.cediCode) query = query.eq("cedi_code", filters.cediCode);
+    if (filters.dateFrom) query = query.gte("reconciliation_date", filters.dateFrom);
+    if (filters.dateTo) query = query.lte("reconciliation_date", filters.dateTo);
     if (filters.search?.trim()) {
       const term = filters.search.trim();
       query = query.or(
@@ -157,10 +159,11 @@ export async function GET(request: Request) {
     ["", ""],
     ["Filtros aplicados", ""],
     ["Buscar", filters.search || "(ninguno)"],
-    ["Fecha del servicio desde", filters.dateFrom ? formatDate(filters.dateFrom) : "(sin límite)"],
-    ["Fecha del servicio hasta", filters.dateTo ? formatDate(filters.dateTo) : "(sin límite)"],
+    ["Fecha de conciliación desde", filters.dateFrom ? formatDate(filters.dateFrom) : "(sin límite)"],
+    ["Fecha de conciliación hasta", filters.dateTo ? formatDate(filters.dateTo) : "(sin límite)"],
     ["Cliente", clientName],
     ["Ciudad", cityName],
+    ["Nodo (CEDI)", filters.cediCode || "Todos"],
     ["Ordenado por", `${sort.column} (${sort.direction === "asc" ? "ascendente" : "descendente"})`],
   ];
   summaryRows.forEach((r) => summarySheet.addRow(r));

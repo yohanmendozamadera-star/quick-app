@@ -31,8 +31,11 @@ export async function getReconciliations({
 
   if (filters.clientId) query = query.eq("client_id", filters.clientId);
   if (filters.cityId) query = query.eq("city_id", filters.cityId);
-  if (filters.dateFrom) query = query.gte("service_date", filters.dateFrom);
-  if (filters.dateTo) query = query.lte("service_date", filters.dateTo);
+  if (filters.cediCode) query = query.eq("cedi_code", filters.cediCode);
+  // El filtro de fecha es la fecha de conciliación (cuándo se cargó el
+  // archivo), no la fecha de servicio — así "hoy" trae lo conciliado hoy.
+  if (filters.dateFrom) query = query.gte("reconciliation_date", filters.dateFrom);
+  if (filters.dateTo) query = query.lte("reconciliation_date", filters.dateTo);
   if (filters.search?.trim()) {
     const term = filters.search.trim();
     query = query.or(
@@ -49,10 +52,11 @@ export async function getReconciliations({
 
   const { data: totalsData } = await supabase.rpc("reconciliations_totals", {
     p_search: filters.search || null,
-    p_date_from: filters.dateFrom || null,
-    p_date_to: filters.dateTo || null,
+    p_reconciliation_date_from: filters.dateFrom || null,
+    p_reconciliation_date_to: filters.dateTo || null,
     p_client_id: filters.clientId || null,
     p_city_id: filters.cityId || null,
+    p_cedi_code: filters.cediCode || null,
   });
 
   const totals = totalsData?.[0] ?? { total_count: 0, total_amount: 0 };
@@ -72,10 +76,11 @@ export async function getMatchingReconciliationIds(filters: ReconciliationsFilte
   const supabase = await createClient();
   const { data } = await supabase.rpc("reconciliations_matching_ids", {
     p_search: filters.search || null,
-    p_date_from: filters.dateFrom || null,
-    p_date_to: filters.dateTo || null,
+    p_reconciliation_date_from: filters.dateFrom || null,
+    p_reconciliation_date_to: filters.dateTo || null,
     p_client_id: filters.clientId || null,
     p_city_id: filters.cityId || null,
+    p_cedi_code: filters.cediCode || null,
   });
   return (data ?? []) as string[];
 }
