@@ -1,6 +1,5 @@
 import {
   LayoutDashboard,
-  Activity,
   PackageSearch,
   Truck,
   PlusCircle,
@@ -34,8 +33,13 @@ export function isNavGroup(child: NavChild | NavGroup): child is NavGroup {
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, permission: "dashboard.view" },
-  { href: "/operacion", label: "Operación", icon: Activity, permission: "dashboard.view" },
+  {
+    href: "/dashboard",
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    permission: "dashboard.view",
+    children: [{ href: "/operacion", label: "Operación" }],
+  },
   { href: "/recoleccion", label: "Recolección", icon: PackageSearch, permission: "recoleccion.view" },
   { href: "/tipo-servicio", label: "Tipo de Servicio", icon: Truck, permission: "tipo_servicio.view" },
   { href: "/adicionales", label: "Adicionales", icon: PlusCircle, permission: "adicionales.view" },

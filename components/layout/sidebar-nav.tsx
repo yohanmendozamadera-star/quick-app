@@ -85,33 +85,50 @@ export function SidebarNav({
 
         if (item.children && item.children.length > 0) {
           const isExpanded = expanded.has(item.href);
-          const active = hasActiveDescendant(item.children, pathname);
+          const ownActive = pathname.startsWith(item.href);
+          const active = ownActive || hasActiveDescendant(item.children, pathname);
           return (
             <div key={item.href}>
-              <button
-                type="button"
-                onClick={() => toggle(item.href)}
-                title={collapsed ? item.label : undefined}
+              <div
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                  active
-                    ? "text-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                  collapsed && "justify-center px-2",
+                  "flex items-center gap-1 rounded-md text-sm font-medium transition-colors",
+                  ownActive
+                    ? "bg-primary text-primary-foreground"
+                    : active
+                      ? "text-foreground"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
                 )}
               >
-                <Icon className="size-4 shrink-0" />
+                <Link
+                  href={item.href}
+                  onClick={navLinkClick(item.href)}
+                  title={collapsed ? item.label : undefined}
+                  className={cn(
+                    "flex flex-1 items-center gap-3 px-3 py-2",
+                    collapsed && "justify-center px-2",
+                  )}
+                >
+                  <Icon className="size-4 shrink-0" />
+                  {!collapsed && <span>{item.label}</span>}
+                </Link>
                 {!collapsed && (
-                  <>
-                    <span className="flex-1 text-left">{item.label}</span>
+                  <button
+                    type="button"
+                    onClick={() => toggle(item.href)}
+                    aria-label={isExpanded ? "Contraer" : "Expandir"}
+                    className={cn(
+                      "rounded-md p-2",
+                      !ownActive && "hover:bg-muted hover:text-foreground",
+                    )}
+                  >
                     {isExpanded ? (
                       <ChevronDown className="size-4 shrink-0" />
                     ) : (
                       <ChevronRight className="size-4 shrink-0" />
                     )}
-                  </>
+                  </button>
                 )}
-              </button>
+              </div>
               {!collapsed && isExpanded && (
                 <div className="ml-4 flex flex-col gap-1 border-l pl-3">
                   {item.children.map((child) => {
