@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useState } from "react";
-import { ChevronDown, ChevronRight, FileText } from "lucide-react";
+import { ChevronDown, ChevronRight, Download } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/format";
 import type { ConsolidadoDateRow, ConsolidadoCediRow } from "@/lib/consolidado/types";
 import type { CatalogOption } from "@/lib/catalog/queries";
@@ -80,14 +80,10 @@ export function ConsolidadoTable({
   clientId,
   dateRows,
   cities,
-  filterDateFrom,
-  filterDateTo,
 }: {
   clientId: string;
   dateRows: ConsolidadoDateRow[];
   cities: CatalogOption[];
-  filterDateFrom: string;
-  filterDateTo: string;
 }) {
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
   const [expandedCities, setExpandedCities] = useState<Set<string>>(new Set());
@@ -185,9 +181,8 @@ export function ConsolidadoTable({
 
                         {cityOpen &&
                           cityRow.cedis.map((cedi) => {
-                            const informeParams = new URLSearchParams({
-                              dateFrom: filterDateFrom,
-                              dateTo: filterDateTo,
+                            const pendientesParams = new URLSearchParams({
+                              date: dateRow.date,
                               cityId: cityRow.cityId,
                               cediCode: cedi.cediCode,
                               cediName: cedi.cediName ?? cedi.cediCode,
@@ -201,13 +196,11 @@ export function ConsolidadoTable({
                                 <MetricCells totals={cediTotals(cedi)} />
                                 <td className="px-3 py-2.5">
                                   <a
-                                    href={`/clientes/${clientId}/consolidado/informe?${informeParams.toString()}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    aria-label="Generar informe"
+                                    href={`/clientes/${clientId}/consolidado/pendientes?${pendientesParams.toString()}`}
+                                    aria-label="Descargar pendientes de esta fecha"
                                     className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }))}
                                   >
-                                    <FileText className="size-4" />
+                                    <Download className="size-4" />
                                   </a>
                                 </td>
                               </tr>

@@ -72,13 +72,7 @@ export default async function ConsolidadoPage({
         </Alert>
       )}
 
-      <ConsolidadoTable
-        clientId={clientId}
-        dateRows={dateRows}
-        cities={cities}
-        filterDateFrom={dateFrom}
-        filterDateTo={dateTo}
-      />
+      <ConsolidadoTable clientId={clientId} dateRows={dateRows} cities={cities} />
     </div>
   );
 }
