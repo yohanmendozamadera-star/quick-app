@@ -1,7 +1,7 @@
 import ExcelJS from "exceljs";
 import { getCurrentUser, can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
-import { getAllClients, getAllCities, getAllCedis } from "@/lib/catalog/queries";
+import { getAllClients, getAllCities } from "@/lib/catalog/queries";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { computeOpportunityDays } from "@/lib/collections/opportunity";
 import type { ReconciliationStatus } from "@/lib/collections/types";
@@ -31,17 +31,15 @@ export async function GET(
   const { searchParams } = new URL(request.url);
   const date = searchParams.get("date");
   const cityId = searchParams.get("cityId");
-  const cediCode = searchParams.get("cediCode");
-  const cediName = searchParams.get("cediName") || cediCode;
+  const cediName = searchParams.get("cediName");
 
-  if (!clientId || !date || !cityId || !cediCode) {
+  if (!clientId || !date || !cityId || !cediName) {
     return new Response("Parámetros incompletos", { status: 400 });
   }
 
-  const [clients, cities, cedis] = await Promise.all([getAllClients(), getAllCities(), getAllCedis()]);
+  const [clients, cities] = await Promise.all([getAllClients(), getAllCities()]);
   const clientName = clients.find((c) => c.id === clientId)?.name ?? "Cliente";
   const cityName = cities.find((c) => c.id === cityId)?.name ?? "Ciudad";
-  const resolvedCediName = cedis.find((c) => c.code === cediCode)?.name ?? cediName ?? cediCode;
 
   const supabase = await createClient();
 
@@ -52,7 +50,7 @@ export async function GET(
     )
     .eq("client_id", clientId)
     .eq("city_id", cityId)
-    .eq("cedi_code", cediCode)
+    .eq("cedi_name", cediName)
     .eq("service_date", date)
     .eq("reconciliation_status", "no_conciliado")
     .is("deleted_at", null)
@@ -99,7 +97,7 @@ export async function GET(
     ["Fecha de descarga", formatDateTime(new Date().toISOString())],
     ["Cliente", clientName],
     ["Ciudad", cityName],
-    ["CEDI", `${resolvedCediName} (${cediCode})`],
+    ["CEDI", cediName],
     ["Fecha", formatDate(date)],
     ["Total pendientes", rows.length],
     ["Valor total", totalAmount],
@@ -108,7 +106,7 @@ export async function GET(
   summarySheet.getColumn(1).font = { bold: true };
 
   const buffer = await workbook.xlsx.writeBuffer();
-  const fileName = `pendientes_${cediCode}_${date}.xlsx`;
+  const fileName = `pendientes_${date}.xlsx`;
 
   return new Response(buffer, {
     headers: {

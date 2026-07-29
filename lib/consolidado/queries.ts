@@ -36,7 +36,6 @@ export function buildConsolidadoDateRows(detailRows: ConsolidadoDetailRow[]): Co
     const cities = Array.from(byCity.entries()).map(([cityId, cityRows]) => ({
       cityId,
       cedis: cityRows.map((r) => ({
-        cediCode: r.cedi_code,
         cediName: r.cedi_name,
         recoleccionCount: Number(r.recoleccion_count ?? 0),
         recoleccionAmount: Number(r.recoleccion_amount ?? 0),

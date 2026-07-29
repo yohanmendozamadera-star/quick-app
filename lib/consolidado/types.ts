@@ -1,8 +1,7 @@
 export type ConsolidadoDetailRow = {
   reconciliation_date: string;
   city_id: string;
-  cedi_code: string;
-  cedi_name: string | null;
+  cedi_name: string;
   recoleccion_count: number;
   recoleccion_amount: number;
   conciliado_count: number;
@@ -18,8 +17,7 @@ export type ConsolidadoFilters = {
 };
 
 export type ConsolidadoCediRow = {
-  cediCode: string;
-  cediName: string | null;
+  cediName: string;
   recoleccionCount: number;
   recoleccionAmount: number;
   conciliadoCount: number;

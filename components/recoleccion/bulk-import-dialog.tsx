@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { CheckCircle2, ClipboardPaste, Loader2, XCircle } from "lucide-react";
 import { parseBulkCollectionsText, BULK_COLUMN_LABELS, BULK_REQUIRED_LABELS } from "@/lib/collections/bulk-parse";
 import { bulkCreateCollections, type BulkImportResult } from "@/app/(app)/recoleccion/actions";
-import type { CatalogOption, CediOption } from "@/lib/catalog/queries";
+import type { CatalogOption } from "@/lib/catalog/queries";
 import { formatCurrency } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -24,23 +24,26 @@ type Step = "input" | "preview" | "result";
 
 export function BulkImportDialog({
   clients,
+  cities,
   loadTypes,
-  cedis,
 }: {
   clients: CatalogOption[];
+  cities: CatalogOption[];
   loadTypes: CatalogOption[];
-  cedis: CediOption[];
 }) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<Step>("input");
   const [clientId, setClientId] = useState("");
+  const [cityId, setCityId] = useState("");
   const [rawText, setRawText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<Extract<BulkImportResult, { success: true }> | null>(null);
 
+  const cityName = cities.find((c) => c.id === cityId)?.name ?? "";
+
   const parsedRows = useMemo(
-    () => (rawText.trim() ? parseBulkCollectionsText(rawText, loadTypes, cedis) : []),
-    [rawText, loadTypes, cedis],
+    () => (rawText.trim() && cityId ? parseBulkCollectionsText(rawText, loadTypes, cityId, cityName) : []),
+    [rawText, loadTypes, cityId, cityName],
   );
 
   const validRows = parsedRows.filter((r) => r.errors.length === 0);
@@ -50,6 +53,7 @@ export function BulkImportDialog({
   const reset = () => {
     setStep("input");
     setClientId("");
+    setCityId("");
     setRawText("");
     setResult(null);
   };
@@ -61,7 +65,7 @@ export function BulkImportDialog({
 
   const handleLoad = async () => {
     setSubmitting(true);
-    const response = await bulkCreateCollections(clientId, rawText);
+    const response = await bulkCreateCollections(clientId, cityId, rawText);
     setSubmitting(false);
 
     if (!response.success) {
@@ -114,6 +118,27 @@ export function BulkImportDialog({
             </div>
 
             <div className="space-y-1.5">
+              <Label htmlFor="bulk-city">Ciudad (aplica a todo el lote) *</Label>
+              <select
+                id="bulk-city"
+                className="h-9 w-full rounded-md border bg-transparent px-2 text-sm"
+                value={cityId}
+                onChange={(e) => setCityId(e.target.value)}
+              >
+                <option value="">Selecciona…</option>
+                {cities.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground">
+                El texto pegado no trae la ciudad, así que se asigna una sola vez aquí para todas las
+                filas.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
               <Label htmlFor="bulk-text">Texto pegado</Label>
               <textarea
                 id="bulk-text"
@@ -137,9 +162,8 @@ export function BulkImportDialog({
                 Las demás pueden ir vacías.
               </p>
               <p className="mt-1">
-                La Ciudad y el Nombre CEDI no se pegan: se calculan solos a partir del Código CEDI contra
-                Configuraciones &gt; Droguerías. Si el código no está registrado ahí, regístralo antes de
-                cargar el archivo.
+                La Ciudad no se pega: se elige arriba una sola vez para todo el lote. El Nombre CEDI es
+                texto libre, no depende de ningún catálogo.
               </p>
             </div>
           </div>
@@ -178,11 +202,8 @@ export function BulkImportDialog({
                     <tr key={row.rowNumber} className={row.errors.length > 0 ? "bg-destructive/5" : undefined}>
                       <td className="px-2 py-1.5 text-muted-foreground">{row.rowNumber}</td>
                       <td className="px-2 py-1.5 font-medium">{row.service_number || "—"}</td>
-                      <td className="px-2 py-1.5">
-                        {row.city_input || "—"}
-                        {row.cediResolved && <span className="ml-1 text-emerald-700" title="Calculado desde Droguerías">✓</span>}
-                      </td>
-                      <td className="px-2 py-1.5">{row.cedi_code || "—"}</td>
+                      <td className="px-2 py-1.5">{row.city_input || "—"}</td>
+                      <td className="px-2 py-1.5">{row.cedi_name || "—"}</td>
                       <td className="px-2 py-1.5">{row.service_date_input || "—"}</td>
                       <td className="px-2 py-1.5">{row.load_type_input || "—"}</td>
                       <td className="px-2 py-1.5">{row.driver_name || "—"}</td>
@@ -257,7 +278,7 @@ export function BulkImportDialog({
           {step === "input" && (
             <Button
               type="button"
-              disabled={!clientId || validRows.length === 0}
+              disabled={!clientId || !cityId || validRows.length === 0}
               onClick={() => setStep("preview")}
             >
               Ver vista previa

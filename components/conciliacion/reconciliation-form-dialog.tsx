@@ -39,7 +39,6 @@ function toFormValues(reconciliation?: ReconciliationRow): ReconciliationFormVal
     client_name: reconciliation?.client_name ?? "",
     novedad: reconciliation?.novedad ?? "",
     city_id: reconciliation?.city_id ?? "",
-    cedi_code: reconciliation?.cedi_code ?? "",
     cedi_name: reconciliation?.cedi_name ?? "",
     service_address: reconciliation?.service_address ?? "",
     service_date: reconciliation?.service_date ?? "",
@@ -182,17 +181,12 @@ export function ReconciliationFormDialog({ clients, cities, loadTypes, reconcili
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="cedi_code">Código CEDI</Label>
-              <Input id="cedi_code" {...register("cedi_code")} />
-            </div>
-
-            <div className="space-y-1.5">
               <Label htmlFor="cedi_name">Nombre CEDI</Label>
               <Input id="cedi_name" {...register("cedi_name")} />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="load_type_id">Tipo de servicio</Label>
+              <Label htmlFor="load_type_id">Tipo de carga</Label>
               <select
                 id="load_type_id"
                 className="h-9 w-full rounded-md border bg-transparent px-2 text-sm"

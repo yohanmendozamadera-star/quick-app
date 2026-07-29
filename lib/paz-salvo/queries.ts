@@ -19,7 +19,7 @@ export async function getPazSalvoDocuments(clientId: string): Promise<PazSalvoDo
 
   const { data } = await supabase
     .from("paz_salvo_documents")
-    .select("id, cedi_code, period, document_type, storage_path, file_name, uploaded_at")
+    .select("id, cedi_name, period, document_type, storage_path, file_name, uploaded_at")
     .eq("client_id", clientId)
     .is("deleted_at", null);
 
@@ -33,7 +33,7 @@ export function buildPazSalvoPeriodRows(
 ): PazSalvoPeriodRow[] {
   const docByKey = new Map<string, PazSalvoDocumentRow>();
   for (const doc of documents) {
-    docByKey.set(`${doc.cedi_code}|${doc.period}`, doc);
+    docByKey.set(`${doc.cedi_name}|${doc.period}`, doc);
   }
 
   const byPeriod = new Map<string, PazSalvoDetailRow[]>();
@@ -56,9 +56,8 @@ export function buildPazSalvoPeriodRows(
     const cities = Array.from(byCity.entries()).map(([cityId, cityRows]) => ({
       cityId,
       cedis: cityRows.map((r) => {
-        const doc = docByKey.get(`${r.cedi_code}|${period}`);
+        const doc = docByKey.get(`${r.cedi_name}|${period}`);
         return {
-          cediCode: r.cedi_code,
           cediName: r.cedi_name,
           totalCount: Number(r.total_count ?? 0),
           pendingCount: Number(r.pending_count ?? 0),

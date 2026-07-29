@@ -133,16 +133,16 @@ export function PazSalvoTable({
                           cityRow.cedis.map((cedi) => {
                             const canGenerate = cedi.pendingCount === 0;
                             const informeParams = new URLSearchParams({
-                              cediCode: cedi.cediCode,
+                              cediName: cedi.cediName,
                               cityId: cityRow.cityId,
                               period: periodRow.period,
                             });
 
                             return (
-                              <tr key={cedi.cediCode} className="bg-muted/5">
+                              <tr key={cedi.cediName} className="bg-muted/5">
                                 <td className="px-3 py-2.5" />
                                 <td className="px-3 py-2.5 pl-12 text-muted-foreground">
-                                  {cedi.cediName ?? cedi.cediCode} ({cedi.cediCode})
+                                  {cedi.cediName}
                                 </td>
                                 <td className="px-3 py-2.5">{cedi.totalCount.toLocaleString("es-CO")}</td>
                                 <td className="px-3 py-2.5">
@@ -163,7 +163,6 @@ export function PazSalvoTable({
                                       <PazSalvoUploadDialog
                                         clientId={clientId}
                                         cityId={cityRow.cityId}
-                                        cediCode={cedi.cediCode}
                                         cediName={cedi.cediName}
                                         period={periodRow.period}
                                         documentType="paz_y_salvo"

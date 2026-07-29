@@ -1,14 +1,15 @@
 import { parseDdMmYyyy } from "@/lib/format";
-import type { CatalogOption, CediOption } from "@/lib/catalog/queries";
+import type { CatalogOption } from "@/lib/catalog/queries";
 
 // Orden de columnas del texto pegado (separado por tabulaciones), tal como
 // se copia desde Excel/Sheets. "Estado" no se pega: siempre nace como
-// "No conciliado". Ciudad y Nombre CEDI tampoco se pegan: se calculan solos
-// a partir del Código CEDI contra Configuraciones > Droguerías.
+// "No conciliado". La Ciudad no se pega: se elige una sola vez para todo el
+// lote (igual que el Cliente). El Nombre CEDI es texto libre, sin depender
+// del catálogo de Droguerías.
 export const BULK_COLUMN_LABELS = [
   "Número del servicio",
   "Nombre del cliente",
-  "Código CEDI",
+  "Nombre CEDI",
   "Dirección del servicio",
   "Fecha del servicio",
   "Tipo de carga",
@@ -19,7 +20,7 @@ export const BULK_COLUMN_LABELS = [
 
 export const BULK_REQUIRED_LABELS = [
   "Número del servicio",
-  "Código CEDI",
+  "Nombre CEDI",
   "Fecha del servicio",
   "Tipo de carga",
   "Recaudo",
@@ -34,7 +35,6 @@ export type ParsedBulkRow = {
   city_id: string | null;
   cedi_code: string | null;
   cedi_name: string | null;
-  cediResolved: boolean;
   service_address: string | null;
   service_date_input: string;
   service_date: string | null;
@@ -53,12 +53,6 @@ function findByName(options: CatalogOption[], name: string | undefined) {
   return options.find((o) => o.name.trim().toLocaleLowerCase("es-CO") === normalized) ?? null;
 }
 
-function findCediByCode(cedis: CediOption[], code: string | null) {
-  if (!code) return null;
-  const normalized = code.toLocaleLowerCase("es-CO");
-  return cedis.find((c) => c.code.toLocaleLowerCase("es-CO") === normalized) ?? null;
-}
-
 function toNullable(value: string | undefined) {
   const trimmed = value?.trim();
   return trimmed && trimmed.length > 0 ? trimmed : null;
@@ -75,7 +69,8 @@ function parseAmount(value: string | undefined) {
 export function parseBulkCollectionsText(
   text: string,
   loadTypes: CatalogOption[],
-  cedis: CediOption[],
+  cityId: string,
+  cityName: string,
 ): ParsedBulkRow[] {
   const lines = text
     .split(/\r?\n/)
@@ -89,7 +84,7 @@ export function parseBulkCollectionsText(
     const [
       serviceNumberRaw,
       clientNameRaw,
-      cediCodeRaw,
+      cediNameRaw,
       addressRaw,
       dateInput,
       loadTypeInput,
@@ -107,29 +102,8 @@ export function parseBulkCollectionsText(
     if (service_number) seenServiceNumbers.add(service_number);
     if (duplicateInPaste) errors.push("Número del servicio repetido en este pegado");
 
-    const cedi_code = toNullable(cediCodeRaw);
-    if (!cedi_code) errors.push("Código CEDI vacío");
-
-    // Ciudad y Nombre CEDI no se pegan: se calculan solos a partir del
-    // código contra Configuraciones > Droguerías. Si el código no está
-    // registrado ahí, la fila queda con error (no hay de dónde sacar la
-    // ciudad/nombre).
-    const cediMatch = findCediByCode(cedis, cedi_code);
-    const cediResolved = cediMatch !== null;
-
-    let city_id: string | null = null;
-    let city_input = "";
-    let cedi_name: string | null = null;
-
-    if (cediMatch) {
-      city_id = cediMatch.city_id;
-      city_input = cediMatch.city?.name ?? "";
-      cedi_name = cediMatch.name;
-    } else if (cedi_code) {
-      errors.push(
-        `Código CEDI "${cedi_code}" no registrado en Configuraciones > Droguerías. Regístralo antes de cargar.`,
-      );
-    }
+    const cedi_name = toNullable(cediNameRaw);
+    if (!cedi_name) errors.push("Nombre CEDI vacío");
 
     const service_date = parseDdMmYyyy(dateInput);
     if (!dateInput) errors.push("Fecha del servicio vacía");
@@ -149,11 +123,10 @@ export function parseBulkCollectionsText(
       raw: line,
       service_number,
       client_name: toNullable(clientNameRaw),
-      city_input,
-      city_id,
-      cedi_code,
+      city_input: cityName,
+      city_id: cityId,
+      cedi_code: null,
       cedi_name,
-      cediResolved,
       service_address: toNullable(addressRaw),
       service_date_input: dateInput ?? "",
       service_date,

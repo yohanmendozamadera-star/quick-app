@@ -48,7 +48,7 @@ export async function GET(request: Request) {
     dateTo: str(searchParams, "cto"),
     clientId: str(searchParams, "client"),
     cityId: str(searchParams, "city"),
-    cediCode: str(searchParams, "cedi"),
+    cediName: str(searchParams, "cedi"),
   };
 
   const supabase = await createClient();
@@ -63,7 +63,7 @@ export async function GET(request: Request) {
 
     if (filters.clientId) query = query.eq("client_id", filters.clientId);
     if (filters.cityId) query = query.eq("city_id", filters.cityId);
-    if (filters.cediCode) query = query.eq("cedi_code", filters.cediCode);
+    if (filters.cediName) query = query.eq("cedi_name", filters.cediName);
     if (filters.dateFrom) query = query.gte("reconciliation_date", filters.dateFrom);
     if (filters.dateTo) query = query.lte("reconciliation_date", filters.dateTo);
     if (filters.search?.trim()) {
@@ -105,7 +105,7 @@ export async function GET(request: Request) {
     { header: "Nombre CEDI", key: "cedi_name", width: 28 },
     { header: "Dirección", key: "service_address", width: 26 },
     { header: "Fecha del servicio", key: "service_date", width: 16 },
-    { header: "Tipo de servicio", key: "load_type", width: 14 },
+    { header: "Tipo de carga", key: "load_type", width: 14 },
     { header: "Documento del cliente", key: "client_document", width: 18 },
     { header: "Recaudo", key: "collection_amount", width: 14 },
     { header: "Fecha de conciliación", key: "reconciliation_date", width: 18 },
@@ -163,7 +163,7 @@ export async function GET(request: Request) {
     ["Fecha de conciliación hasta", filters.dateTo ? formatDate(filters.dateTo) : "(sin límite)"],
     ["Cliente", clientName],
     ["Ciudad", cityName],
-    ["Nodo (CEDI)", filters.cediCode || "Todos"],
+    ["Nodo (CEDI)", filters.cediName || "Todos"],
     ["Ordenado por", `${sort.column} (${sort.direction === "asc" ? "ascendente" : "descendente"})`],
   ];
   summaryRows.forEach((r) => summarySheet.addRow(r));

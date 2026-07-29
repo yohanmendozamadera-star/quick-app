@@ -12,8 +12,7 @@ const MAX_BYTES = 10 * 1024 * 1024;
 export async function uploadPazSalvoDocument(
   clientId: string,
   cityId: string,
-  cediCode: string,
-  cediName: string | null,
+  cediName: string,
   period: string,
   documentType: PazSalvoDocumentType,
   formData: FormData,
@@ -35,7 +34,7 @@ export async function uploadPazSalvoDocument(
   }
 
   const supabase = await createClient();
-  const path = `${cediCode}/${period}/${crypto.randomUUID()}-${file.name}`;
+  const path = `${encodeURIComponent(cediName)}/${period}/${crypto.randomUUID()}-${file.name}`;
 
   const { error: uploadError } = await supabase.storage
     .from("paz-salvo")
@@ -50,7 +49,7 @@ export async function uploadPazSalvoDocument(
     .from("paz_salvo_documents")
     .select("id, storage_path")
     .eq("client_id", clientId)
-    .eq("cedi_code", cediCode)
+    .eq("cedi_name", cediName)
     .eq("period", period)
     .is("deleted_at", null)
     .maybeSingle();
@@ -63,7 +62,6 @@ export async function uploadPazSalvoDocument(
   const { error } = await supabase.from("paz_salvo_documents").insert({
     client_id: clientId,
     city_id: cityId,
-    cedi_code: cediCode,
     cedi_name: cediName,
     period,
     document_type: documentType,

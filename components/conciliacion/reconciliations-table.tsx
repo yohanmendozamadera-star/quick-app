@@ -168,7 +168,7 @@ export function ReconciliationsTable({
               <th className="px-3 py-2.5">
                 <SortLink column="service_date" label="Fecha servicio" currentSort={sortColumn} currentDir={sortDirection} />
               </th>
-              <th className="px-3 py-2.5">Tipo de servicio</th>
+              <th className="px-3 py-2.5">Tipo de carga</th>
               <th className="px-3 py-2.5">Documento cliente</th>
               <th className="px-3 py-2.5">
                 <SortLink column="collection_amount" label="Recaudo" currentSort={sortColumn} currentDir={sortDirection} />

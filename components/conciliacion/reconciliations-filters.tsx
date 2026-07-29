@@ -8,16 +8,16 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { getTodayBogota } from "@/lib/format";
 import { saveFiltersForPath } from "@/lib/session-nav-filters";
-import type { CatalogOption, CediOption } from "@/lib/catalog/queries";
+import type { CatalogOption } from "@/lib/catalog/queries";
 
 export function ReconciliationsFilters({
   clients,
   cities,
-  cedis,
+  cediNames,
 }: {
   clients: CatalogOption[];
   cities: CatalogOption[];
-  cedis: CediOption[];
+  cediNames: string[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -62,8 +62,6 @@ export function ReconciliationsFilters({
 
   const dateFromValue = searchParams.has("cfrom") ? (searchParams.get("cfrom") ?? "") : getTodayBogota();
   const dateToValue = searchParams.has("cto") ? (searchParams.get("cto") ?? "") : getTodayBogota();
-  const selectedCityId = searchParams.get("city") ?? "";
-  const cediOptions = selectedCityId ? cedis.filter((c) => c.city_id === selectedCityId) : cedis;
 
   // Recuerda los filtros actuales para que, si vas a otro módulo y regresas
   // por el menú, se restauren en vez de reiniciar a los valores por defecto.
@@ -149,9 +147,9 @@ export function ReconciliationsFilters({
             onChange={(e) => updateParam("cedi", e.target.value)}
           >
             <option value="">Todos</option>
-            {cediOptions.map((c) => (
-              <option key={c.id} value={c.code}>
-                {c.name} ({c.code})
+            {cediNames.map((name) => (
+              <option key={name} value={name}>
+                {name}
               </option>
             ))}
           </select>

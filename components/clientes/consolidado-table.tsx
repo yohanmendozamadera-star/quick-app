@@ -184,14 +184,13 @@ export function ConsolidadoTable({
                             const pendientesParams = new URLSearchParams({
                               date: dateRow.date,
                               cityId: cityRow.cityId,
-                              cediCode: cedi.cediCode,
-                              cediName: cedi.cediName ?? cedi.cediCode,
+                              cediName: cedi.cediName,
                             });
                             return (
-                              <tr key={cedi.cediCode} className="bg-muted/5">
+                              <tr key={cedi.cediName} className="bg-muted/5">
                                 <td className="px-3 py-2.5" />
                                 <td className="px-3 py-2.5 pl-12 text-muted-foreground">
-                                  {cedi.cediName ?? cedi.cediCode} ({cedi.cediCode})
+                                  {cedi.cediName}
                                 </td>
                                 <MetricCells totals={cediTotals(cedi)} />
                                 <td className="px-3 py-2.5">

@@ -1,7 +1,7 @@
 import PDFDocument from "pdfkit";
 import { getCurrentUser, can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
-import { getAllClients, getAllCities, getAllCedis } from "@/lib/catalog/queries";
+import { getAllClients, getAllCities } from "@/lib/catalog/queries";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { getQuickLogoBuffer } from "@/lib/pdf/logo";
 
@@ -55,19 +55,15 @@ export async function GET(
   const dateFrom = searchParams.get("dateFrom");
   const dateTo = searchParams.get("dateTo");
   const cityId = searchParams.get("cityId");
-  const cediCode = searchParams.get("cediCode");
+  const cediName = searchParams.get("cediName");
 
-  if (!clientId || !dateFrom || !dateTo || !cityId || !cediCode) {
+  if (!clientId || !dateFrom || !dateTo || !cityId || !cediName) {
     return new Response("Parámetros incompletos", { status: 400 });
   }
 
-  const [clients, cities, cedis] = await Promise.all([getAllClients(), getAllCities(), getAllCedis()]);
+  const [clients, cities] = await Promise.all([getAllClients(), getAllCities()]);
   const clientName = clients.find((c) => c.id === clientId)?.name ?? "Cliente";
   const cityName = cities.find((c) => c.id === cityId)?.name ?? "Ciudad";
-  // El nombre del CEDI se resuelve siempre desde el catálogo (fuente de verdad),
-  // no desde el texto denormalizado en collections/reconciliations, que puede
-  // faltar en registros antiguos.
-  const cediName = cedis.find((c) => c.code === cediCode)?.name ?? searchParams.get("cediName") ?? cediCode;
 
   const supabase = await createClient();
 
@@ -79,7 +75,7 @@ export async function GET(
     .select("service_number, client_document, novedad, collection_amount, service_date")
     .eq("client_id", clientId)
     .eq("city_id", cityId)
-    .eq("cedi_code", cediCode)
+    .eq("cedi_name", cediName)
     .gte("reconciliation_date", dateFrom)
     .lte("reconciliation_date", dateTo)
     .is("deleted_at", null)
@@ -123,7 +119,7 @@ export async function GET(
       { text: "Ciudad", width: infoCols[0], bold: true },
       { text: cityName, width: infoCols[1] },
       { text: "Nodo", width: infoCols[2], bold: true },
-      { text: cediName ?? "—", width: infoCols[3] },
+      { text: cediName, width: infoCols[3] },
     ],
     infoRowHeight,
   );
@@ -136,10 +132,8 @@ export async function GET(
       { text: "Fecha", width: infoCols[0], bold: true },
       {
         text: dateFrom === dateTo ? formatDate(dateFrom) : `${formatDate(dateFrom)} - ${formatDate(dateTo)}`,
-        width: infoCols[1],
+        width: infoCols[1] + infoCols[2] + infoCols[3],
       },
-      { text: "Código CEDI", width: infoCols[2], bold: true },
-      { text: cediCode, width: infoCols[3] },
     ],
     infoRowHeight,
   );
@@ -287,7 +281,7 @@ export async function GET(
     headers: {
       "Content-Type": "application/pdf",
       "Cache-Control": "no-store",
-      "Content-Disposition": `attachment; filename="acta_entrega_${cediCode}_${dateFrom}_${dateTo}.pdf"`,
+      "Content-Disposition": `attachment; filename="acta_entrega_${dateFrom}_${dateTo}.pdf"`,
     },
   });
 }

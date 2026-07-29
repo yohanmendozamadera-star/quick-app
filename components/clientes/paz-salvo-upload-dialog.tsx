@@ -21,15 +21,13 @@ import {
 export function PazSalvoUploadDialog({
   clientId,
   cityId,
-  cediCode,
   cediName,
   period,
   documentType,
 }: {
   clientId: string;
   cityId: string;
-  cediCode: string;
-  cediName: string | null;
+  cediName: string;
   period: string;
   documentType: PazSalvoDocumentType;
 }) {
@@ -50,7 +48,6 @@ export function PazSalvoUploadDialog({
     const result = await uploadPazSalvoDocument(
       clientId,
       cityId,
-      cediCode,
       cediName,
       period,
       documentType,
@@ -76,9 +73,7 @@ export function PazSalvoUploadDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Adjuntar documento firmado</DialogTitle>
-          <DialogDescription>
-            {cediName ?? cediCode} ({cediCode})
-          </DialogDescription>
+          <DialogDescription>{cediName}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-2">

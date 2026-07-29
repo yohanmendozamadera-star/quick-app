@@ -1,7 +1,7 @@
 import PDFDocument from "pdfkit";
 import { getCurrentUser, can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
-import { getAllCities, getAllCedis } from "@/lib/catalog/queries";
+import { getAllCities } from "@/lib/catalog/queries";
 import { getTodayBogota } from "@/lib/format";
 import { getQuickLogoBuffer } from "@/lib/pdf/logo";
 
@@ -30,16 +30,15 @@ export async function GET(
   const { clientId } = await params;
   const { searchParams } = new URL(request.url);
   const cityId = searchParams.get("cityId");
-  const cediCode = searchParams.get("cediCode");
+  const cediName = searchParams.get("cediName");
   const period = searchParams.get("period");
 
-  if (!clientId || !cityId || !cediCode || !period) {
+  if (!clientId || !cityId || !cediName || !period) {
     return new Response("Parámetros incompletos", { status: 400 });
   }
 
-  const [cities, cedis] = await Promise.all([getAllCities(), getAllCedis()]);
+  const cities = await getAllCities();
   const cityName = cities.find((c) => c.id === cityId)?.name ?? "Ciudad";
-  const cediName = cedis.find((c) => c.code === cediCode)?.name ?? cediCode;
 
   const supabase = await createClient();
   const monthEnd = monthEndIso(period);
@@ -49,7 +48,7 @@ export async function GET(
     .select("id", { count: "exact", head: true })
     .eq("client_id", clientId)
     .eq("city_id", cityId)
-    .eq("cedi_code", cediCode)
+    .eq("cedi_name", cediName)
     .eq("reconciliation_status", "no_conciliado")
     .gte("service_date", period)
     .lte("service_date", monthEnd)
@@ -171,7 +170,7 @@ export async function GET(
     headers: {
       "Content-Type": "application/pdf",
       "Cache-Control": "no-store",
-      "Content-Disposition": `attachment; filename="paz_y_salvo_${cediCode}_${period}.pdf"`,
+      "Content-Disposition": `attachment; filename="paz_y_salvo_${period}.pdf"`,
     },
   });
 }

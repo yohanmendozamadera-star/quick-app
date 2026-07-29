@@ -1,7 +1,7 @@
 import { Download, FileText } from "lucide-react";
 import { getCurrentUser, can } from "@/lib/permissions";
-import { getReconciliations } from "@/lib/reconciliations/queries";
-import { getClients, getVisibleCities, getLoadTypes, getCedis, getVisibleCedis } from "@/lib/catalog/queries";
+import { getReconciliations, getDistinctCediNames } from "@/lib/reconciliations/queries";
+import { getClients, getVisibleCities, getLoadTypes } from "@/lib/catalog/queries";
 import { DEFAULT_PAGE_SIZE, type ReconciliationsSort } from "@/lib/reconciliations/types";
 import { ModulePlaceholder } from "@/components/layout/module-placeholder";
 import { ReconciliationsFilters } from "@/components/conciliacion/reconciliations-filters";
@@ -63,16 +63,15 @@ export default async function ConciliacionPage({
     dateTo,
     clientId: str(sp, "client"),
     cityId: str(sp, "city"),
-    cediCode: str(sp, "cedi"),
+    cediName: str(sp, "cedi"),
   };
 
-  const [{ rows, count, totals }, clients, cities, loadTypes, cedis, visibleCedis] = await Promise.all([
+  const [{ rows, count, totals }, clients, cities, loadTypes, cediNames] = await Promise.all([
     getReconciliations({ filters, sort, page, pageSize }),
     getClients(),
     getVisibleCities(),
     getLoadTypes(),
-    getCedis(),
-    getVisibleCedis(),
+    getDistinctCediNames(filters.clientId, filters.cityId),
   ]);
 
   const canCreate = can(permissions, "conciliacion.create");
@@ -85,7 +84,7 @@ export default async function ConciliacionPage({
   if (filters.dateTo) exportParams.set("cto", filters.dateTo);
   if (filters.clientId) exportParams.set("client", filters.clientId);
   if (filters.cityId) exportParams.set("city", filters.cityId);
-  if (filters.cediCode) exportParams.set("cedi", filters.cediCode);
+  if (filters.cediName) exportParams.set("cedi", filters.cediName);
   exportParams.set("sort", sort.column);
   exportParams.set("dir", sort.direction);
 
@@ -93,15 +92,13 @@ export default async function ConciliacionPage({
   // nodo puntuales (no "Todos"), usando el rango de fechas de conciliación
   // ya filtrado en esta misma vista.
   const canGenerateActa =
-    can(permissions, "conciliacion.export") && filters.clientId && filters.cityId && filters.cediCode;
-  const selectedCedi = visibleCedis.find((c) => c.code === filters.cediCode);
+    can(permissions, "conciliacion.export") && filters.clientId && filters.cityId && filters.cediName;
   const informeParams = new URLSearchParams();
   if (canGenerateActa) {
     informeParams.set("dateFrom", filters.dateFrom || getTodayBogota());
     informeParams.set("dateTo", filters.dateTo || getTodayBogota());
     informeParams.set("cityId", filters.cityId!);
-    informeParams.set("cediCode", filters.cediCode!);
-    informeParams.set("cediName", selectedCedi?.name ?? filters.cediCode!);
+    informeParams.set("cediName", filters.cediName!);
   }
 
   return (
@@ -136,12 +133,12 @@ export default async function ConciliacionPage({
               Descargar Excel
             </a>
           )}
-          {canImport && <BulkImportDialog clients={clients} loadTypes={loadTypes} cedis={cedis} />}
+          {canImport && <BulkImportDialog clients={clients} cities={cities} loadTypes={loadTypes} />}
           {canCreate && <ReconciliationFormDialog clients={clients} cities={cities} loadTypes={loadTypes} />}
         </div>
       </div>
 
-      <ReconciliationsFilters clients={clients} cities={cities} cedis={visibleCedis} />
+      <ReconciliationsFilters clients={clients} cities={cities} cediNames={cediNames} />
 
       <ReconciliationsTable
         rows={rows}

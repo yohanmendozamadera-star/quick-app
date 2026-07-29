@@ -31,7 +31,7 @@ export async function getReconciliations({
 
   if (filters.clientId) query = query.eq("client_id", filters.clientId);
   if (filters.cityId) query = query.eq("city_id", filters.cityId);
-  if (filters.cediCode) query = query.eq("cedi_code", filters.cediCode);
+  if (filters.cediName) query = query.eq("cedi_name", filters.cediName);
   // El filtro de fecha es la fecha de conciliación (cuándo se cargó el
   // archivo), no la fecha de servicio — así "hoy" trae lo conciliado hoy.
   if (filters.dateFrom) query = query.gte("reconciliation_date", filters.dateFrom);
@@ -56,7 +56,7 @@ export async function getReconciliations({
     p_reconciliation_date_to: filters.dateTo || null,
     p_client_id: filters.clientId || null,
     p_city_id: filters.cityId || null,
-    p_cedi_code: filters.cediCode || null,
+    p_cedi_name: filters.cediName || null,
   });
 
   const totals = totalsData?.[0] ?? { total_count: 0, total_amount: 0 };
@@ -80,7 +80,17 @@ export async function getMatchingReconciliationIds(filters: ReconciliationsFilte
     p_reconciliation_date_to: filters.dateTo || null,
     p_client_id: filters.clientId || null,
     p_city_id: filters.cityId || null,
-    p_cedi_code: filters.cediCode || null,
+    p_cedi_name: filters.cediName || null,
+  });
+  return (data ?? []) as string[];
+}
+
+/** Nombres de CEDI distintos que aparecen en los datos, para poblar el filtro "Nodo" sin depender del catálogo de Droguerías. */
+export async function getDistinctCediNames(clientId?: string, cityId?: string): Promise<string[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("reconciliations_distinct_cedi_names", {
+    p_client_id: clientId || null,
+    p_city_id: cityId || null,
   });
   return (data ?? []) as string[];
 }

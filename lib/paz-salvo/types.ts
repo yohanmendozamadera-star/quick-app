@@ -3,8 +3,7 @@ export type PazSalvoDocumentType = "paz_y_salvo" | "compromiso";
 export type PazSalvoDetailRow = {
   period: string;
   city_id: string;
-  cedi_code: string;
-  cedi_name: string | null;
+  cedi_name: string;
   total_count: number;
   pending_count: number;
 };
@@ -17,7 +16,7 @@ export type PazSalvoFilters = {
 
 export type PazSalvoDocumentRow = {
   id: string;
-  cedi_code: string;
+  cedi_name: string;
   period: string;
   document_type: PazSalvoDocumentType;
   storage_path: string;
@@ -26,8 +25,7 @@ export type PazSalvoDocumentRow = {
 };
 
 export type PazSalvoCediRow = {
-  cediCode: string;
-  cediName: string | null;
+  cediName: string;
   totalCount: number;
   pendingCount: number;
   document: {

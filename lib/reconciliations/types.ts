@@ -30,7 +30,7 @@ export type ReconciliationsFilters = {
   dateTo?: string;
   clientId?: string;
   cityId?: string;
-  cediCode?: string;
+  cediName?: string;
 };
 
 export type ReconciliationsSort = {

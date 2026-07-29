@@ -1,24 +1,25 @@
 import { parseDdMmYyyy } from "@/lib/format";
-import type { CatalogOption, CediOption } from "@/lib/catalog/queries";
+import type { CatalogOption } from "@/lib/catalog/queries";
 
-// Orden de columnas del texto pegado (separado por tabulaciones). Igual que
-// Recolección: Ciudad y Nombre CEDI no se pegan, se calculan solos a partir
-// del Código CEDI contra Configuraciones > Droguerías.
+// Orden de columnas del texto pegado (separado por tabulaciones), tal como
+// se copia desde Excel/Sheets. La Ciudad no se pega: se elige una sola vez
+// para todo el lote (igual que el Cliente). El Nombre CEDI es texto libre,
+// sin depender del catálogo de Droguerías.
 export const BULK_COLUMN_LABELS = [
   "Número del servicio",
   "Nombre del cliente",
   "Novedad",
-  "Código CEDI",
+  "Nombre CEDI",
   "Dirección del servicio",
   "Fecha del servicio",
-  "Tipo de servicio",
+  "Tipo de carga",
   "Documento del cliente",
   "Recaudo",
 ] as const;
 
 export const BULK_REQUIRED_LABELS = [
   "Número del servicio",
-  "Código CEDI",
+  "Nombre CEDI",
   "Fecha del servicio",
   "Recaudo",
 ];
@@ -33,7 +34,6 @@ export type ParsedBulkReconciliation = {
   city_id: string | null;
   cedi_code: string | null;
   cedi_name: string | null;
-  cediResolved: boolean;
   service_address: string | null;
   service_date_input: string;
   service_date: string | null;
@@ -49,12 +49,6 @@ function findByName(options: CatalogOption[], name: string | undefined) {
   if (!name) return null;
   const normalized = name.trim().toLocaleLowerCase("es-CO");
   return options.find((o) => o.name.trim().toLocaleLowerCase("es-CO") === normalized) ?? null;
-}
-
-function findCediByCode(cedis: CediOption[], code: string | null) {
-  if (!code) return null;
-  const normalized = code.toLocaleLowerCase("es-CO");
-  return cedis.find((c) => c.code.toLocaleLowerCase("es-CO") === normalized) ?? null;
 }
 
 function toNullable(value: string | undefined) {
@@ -73,7 +67,8 @@ function parseAmount(value: string | undefined) {
 export function parseBulkReconciliationsText(
   text: string,
   loadTypes: CatalogOption[],
-  cedis: CediOption[],
+  cityId: string,
+  cityName: string,
 ): ParsedBulkReconciliation[] {
   const lines = text
     .split(/\r?\n/)
@@ -88,7 +83,7 @@ export function parseBulkReconciliationsText(
       serviceNumberRaw,
       clientNameRaw,
       novedadRaw,
-      cediCodeRaw,
+      cediNameRaw,
       addressRaw,
       dateInput,
       loadTypeInput,
@@ -105,35 +100,15 @@ export function parseBulkReconciliationsText(
     if (service_number) seenServiceNumbers.add(service_number);
     if (duplicateInPaste) errors.push("Número del servicio repetido en este pegado");
 
-    const cedi_code = toNullable(cediCodeRaw);
-    if (!cedi_code) errors.push("Código CEDI vacío");
-
-    // Ciudad y Nombre CEDI no se pegan: se calculan solos a partir del
-    // código contra Configuraciones > Droguerías. Si el código no está
-    // registrado ahí, la fila queda con error.
-    const cediMatch = findCediByCode(cedis, cedi_code);
-    const cediResolved = cediMatch !== null;
-
-    let city_id: string | null = null;
-    let city_input = "";
-    let cedi_name: string | null = null;
-
-    if (cediMatch) {
-      city_id = cediMatch.city_id;
-      city_input = cediMatch.city?.name ?? "";
-      cedi_name = cediMatch.name;
-    } else if (cedi_code) {
-      errors.push(
-        `Código CEDI "${cedi_code}" no registrado en Configuraciones > Droguerías. Regístralo antes de cargar.`,
-      );
-    }
+    const cedi_name = toNullable(cediNameRaw);
+    if (!cedi_name) errors.push("Nombre CEDI vacío");
 
     const service_date = parseDdMmYyyy(dateInput);
     if (!dateInput) errors.push("Fecha del servicio vacía");
     else if (!service_date) errors.push(`Fecha inválida: "${dateInput}" (use DD/MM/AAAA)`);
 
     const loadType = findByName(loadTypes, loadTypeInput);
-    if (loadTypeInput && !loadType) errors.push(`Tipo de servicio no reconocido: "${loadTypeInput}"`);
+    if (loadTypeInput && !loadType) errors.push(`Tipo de carga no reconocido: "${loadTypeInput}"`);
 
     const collection_amount = parseAmount(amountInput);
     if (!amountInput) errors.push("Recaudo vacío");
@@ -146,11 +121,10 @@ export function parseBulkReconciliationsText(
       service_number,
       client_name: toNullable(clientNameRaw),
       novedad: toNullable(novedadRaw),
-      city_input,
-      city_id,
-      cedi_code,
+      city_input: cityName,
+      city_id: cityId,
+      cedi_code: null,
       cedi_name,
-      cediResolved,
       service_address: toNullable(addressRaw),
       service_date_input: dateInput ?? "",
       service_date,

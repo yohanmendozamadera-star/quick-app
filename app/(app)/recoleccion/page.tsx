@@ -1,7 +1,7 @@
 import { Download } from "lucide-react";
 import { getCurrentUser, can } from "@/lib/permissions";
 import { getCollections } from "@/lib/collections/queries";
-import { getClients, getVisibleCities, getLoadTypes, getCedis } from "@/lib/catalog/queries";
+import { getClients, getVisibleCities, getLoadTypes } from "@/lib/catalog/queries";
 import { DEFAULT_PAGE_SIZE, type CollectionsSort, type ReconciliationStatus } from "@/lib/collections/types";
 import { ModulePlaceholder } from "@/components/layout/module-placeholder";
 import { CollectionsFilters } from "@/components/recoleccion/collections-filters";
@@ -69,12 +69,11 @@ export default async function RecoleccionPage({
     opportunityMinDays: opportunityParam ? Number(opportunityParam) : undefined,
   };
 
-  const [{ rows, count, totals }, clients, cities, loadTypes, cedis] = await Promise.all([
+  const [{ rows, count, totals }, clients, cities, loadTypes] = await Promise.all([
     getCollections({ filters, sort, page, pageSize }),
     getClients(),
     getVisibleCities(),
     getLoadTypes(),
-    getCedis(),
   ]);
 
   const canCreate = can(permissions, "recoleccion.create");
@@ -114,9 +113,9 @@ export default async function RecoleccionPage({
               Descargar Excel
             </a>
           )}
-          {canImport && <BulkImportDialog clients={clients} loadTypes={loadTypes} cedis={cedis} />}
+          {canImport && <BulkImportDialog clients={clients} cities={cities} loadTypes={loadTypes} />}
           {canCreate && (
-            <CollectionFormDialog clients={clients} cities={cities} loadTypes={loadTypes} cedis={cedis} />
+            <CollectionFormDialog clients={clients} cities={cities} loadTypes={loadTypes} />
           )}
         </div>
       </div>
@@ -137,7 +136,6 @@ export default async function RecoleccionPage({
         clients={clients}
         cities={cities}
         loadTypes={loadTypes}
-        cedis={cedis}
       />
     </div>
   );

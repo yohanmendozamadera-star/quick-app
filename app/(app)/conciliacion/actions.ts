@@ -8,7 +8,7 @@ import {
   normalizeReconciliationInput,
 } from "@/lib/validations/reconciliation";
 import { parseBulkReconciliationsText } from "@/lib/reconciliations/bulk-parse";
-import { getLoadTypes, getCedis } from "@/lib/catalog/queries";
+import { getLoadTypes, getVisibleCities } from "@/lib/catalog/queries";
 import { getMatchingReconciliationIds } from "@/lib/reconciliations/queries";
 import type { ReconciliationsFilters } from "@/lib/reconciliations/types";
 
@@ -144,7 +144,11 @@ export async function getMatchingIds(filters: ReconciliationsFilters): Promise<s
   return getMatchingReconciliationIds(filters);
 }
 
-export async function bulkCreateReconciliations(clientId: string, rawText: string): Promise<BulkImportResult> {
+export async function bulkCreateReconciliations(
+  clientId: string,
+  cityId: string,
+  rawText: string,
+): Promise<BulkImportResult> {
   const user = await getCurrentUser();
   if (!user || !can(user.permissions, "conciliacion.import")) {
     return { success: false, message: "No tienes permiso para importar conciliaciones." };
@@ -153,9 +157,13 @@ export async function bulkCreateReconciliations(clientId: string, rawText: strin
   if (!clientId) {
     return { success: false, message: "Selecciona el cliente para este lote." };
   }
+  if (!cityId) {
+    return { success: false, message: "Selecciona la ciudad para este lote." };
+  }
 
-  const [loadTypes, cedis] = await Promise.all([getLoadTypes(), getCedis()]);
-  const parsedRows = parseBulkReconciliationsText(rawText, loadTypes, cedis);
+  const [loadTypes, cities] = await Promise.all([getLoadTypes(), getVisibleCities()]);
+  const cityName = cities.find((c) => c.id === cityId)?.name ?? "";
+  const parsedRows = parseBulkReconciliationsText(rawText, loadTypes, cityId, cityName);
 
   if (parsedRows.length === 0) {
     return { success: false, message: "No se encontró ningún dato para importar." };

@@ -8,7 +8,7 @@ import { Loader2, Plus, Pencil } from "lucide-react";
 import { collectionFormSchema, type CollectionFormValues } from "@/lib/validations/collection";
 import { createCollection, updateCollection } from "@/app/(app)/recoleccion/actions";
 import type { CollectionRow } from "@/lib/collections/types";
-import type { CatalogOption, CediOption } from "@/lib/catalog/queries";
+import type { CatalogOption } from "@/lib/catalog/queries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,7 +26,6 @@ type Props = {
   clients: CatalogOption[];
   cities: CatalogOption[];
   loadTypes: CatalogOption[];
-  cedis: CediOption[];
   collection?: CollectionRow;
 };
 
@@ -38,7 +37,6 @@ function toFormValues(collection?: CollectionRow): CollectionFormValues {
     note: collection?.note ?? "",
     driver_name: collection?.driver_name ?? "",
     city_id: collection?.city_id ?? "",
-    cedi_code: collection?.cedi_code ?? "",
     cedi_name: collection?.cedi_name ?? "",
     service_address: collection?.service_address ?? "",
     service_date: collection?.service_date ?? "",
@@ -48,7 +46,7 @@ function toFormValues(collection?: CollectionRow): CollectionFormValues {
   };
 }
 
-export function CollectionFormDialog({ clients, cities, loadTypes, cedis, collection }: Props) {
+export function CollectionFormDialog({ clients, cities, loadTypes, collection }: Props) {
   const isEdit = Boolean(collection);
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -57,21 +55,11 @@ export function CollectionFormDialog({ clients, cities, loadTypes, cedis, collec
     register,
     handleSubmit,
     reset,
-    setValue,
     formState: { errors },
   } = useForm<CollectionFormValues>({
     resolver: zodResolver(collectionFormSchema),
     defaultValues: toFormValues(collection),
   });
-
-  // Si el código coincide con una droguería registrada en Configuraciones,
-  // se calculan solos la ciudad y el nombre (se pueden seguir editando).
-  const handleCediCodeBlur = (code: string) => {
-    const match = cedis.find((c) => c.code.toLocaleLowerCase("es-CO") === code.trim().toLocaleLowerCase("es-CO"));
-    if (!match) return;
-    setValue("cedi_name", match.name);
-    if (match.city_id) setValue("city_id", match.city_id);
-  };
 
   const onOpenChange = (value: boolean) => {
     setOpen(value);
@@ -200,17 +188,6 @@ export function CollectionFormDialog({ clients, cities, loadTypes, cedis, collec
                   </option>
                 ))}
               </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="cedi_code">Código CEDI (droguería)</Label>
-              <Input
-                id="cedi_code"
-                {...register("cedi_code", { onBlur: (e) => handleCediCodeBlur(e.target.value) })}
-              />
-              <p className="text-xs text-muted-foreground">
-                Si el código existe en Configuraciones, la ciudad y el nombre se completan solos.
-              </p>
             </div>
 
             <div className="space-y-1.5">

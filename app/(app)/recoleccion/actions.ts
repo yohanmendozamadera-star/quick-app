@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser, can } from "@/lib/permissions";
 import { collectionFormSchema, normalizeCollectionInput } from "@/lib/validations/collection";
 import { parseBulkCollectionsText } from "@/lib/collections/bulk-parse";
-import { getLoadTypes, getCedis } from "@/lib/catalog/queries";
+import { getLoadTypes, getVisibleCities } from "@/lib/catalog/queries";
 import { getMatchingCollectionIds } from "@/lib/collections/queries";
 import type { CollectionsFilters } from "@/lib/collections/types";
 
@@ -22,7 +22,11 @@ export type BulkImportResult =
 
 const INSERT_CHUNK_SIZE = 200;
 
-export async function bulkCreateCollections(clientId: string, rawText: string): Promise<BulkImportResult> {
+export async function bulkCreateCollections(
+  clientId: string,
+  cityId: string,
+  rawText: string,
+): Promise<BulkImportResult> {
   const user = await getCurrentUser();
   if (!user || !can(user.permissions, "recoleccion.import")) {
     return { success: false, message: "No tienes permiso para importar recolecciones." };
@@ -31,9 +35,13 @@ export async function bulkCreateCollections(clientId: string, rawText: string): 
   if (!clientId) {
     return { success: false, message: "Selecciona el cliente para este lote." };
   }
+  if (!cityId) {
+    return { success: false, message: "Selecciona la ciudad para este lote." };
+  }
 
-  const [loadTypes, cedis] = await Promise.all([getLoadTypes(), getCedis()]);
-  const parsedRows = parseBulkCollectionsText(rawText, loadTypes, cedis);
+  const [loadTypes, cities] = await Promise.all([getLoadTypes(), getVisibleCities()]);
+  const cityName = cities.find((c) => c.id === cityId)?.name ?? "";
+  const parsedRows = parseBulkCollectionsText(rawText, loadTypes, cityId, cityName);
 
   if (parsedRows.length === 0) {
     return { success: false, message: "No se encontró ningún dato para importar." };

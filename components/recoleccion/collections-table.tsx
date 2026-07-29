@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Trash2, Loader2 } from "lucide-react";
 import type { CollectionRow, CollectionsFilters } from "@/lib/collections/types";
-import type { CatalogOption, CediOption } from "@/lib/catalog/queries";
+import type { CatalogOption } from "@/lib/catalog/queries";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import { computeOpportunityDays } from "@/lib/collections/opportunity";
 import { deleteCollection, bulkDeleteCollections, getMatchingIds } from "@/app/(app)/recoleccion/actions";
@@ -41,7 +41,6 @@ export function CollectionsTable({
   clients,
   cities,
   loadTypes,
-  cedis,
 }: {
   rows: CollectionRow[];
   count: number;
@@ -56,7 +55,6 @@ export function CollectionsTable({
   clients: CatalogOption[];
   cities: CatalogOption[];
   loadTypes: CatalogOption[];
-  cedis: CediOption[];
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loadingAllIds, setLoadingAllIds] = useState(false);
@@ -261,7 +259,6 @@ export function CollectionsTable({
                           clients={clients}
                           cities={cities}
                           loadTypes={loadTypes}
-                          cedis={cedis}
                         />
                       )}
                       {canDelete && (
