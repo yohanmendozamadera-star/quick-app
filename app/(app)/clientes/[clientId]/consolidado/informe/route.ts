@@ -11,6 +11,7 @@ type ReconciliationRow = {
   novedad: string | null;
   collection_amount: number;
   service_date: string;
+  collection: { collection_date: string | null } | null;
 };
 
 const PAGE_WIDTH = 612;
@@ -72,7 +73,9 @@ export async function GET(
   // de servicio — así "filtrar por hoy" trae exactamente lo conciliado hoy.
   const { data: reconciliations } = await supabase
     .from("reconciliations")
-    .select("service_number, client_document, novedad, collection_amount, service_date")
+    .select(
+      "service_number, client_document, novedad, collection_amount, service_date, collection:collections!matched_collection_id(collection_date)",
+    )
     .eq("client_id", clientId)
     .eq("city_id", cityId)
     .eq("cedi_name", cediName)
@@ -81,7 +84,7 @@ export async function GET(
     .is("deleted_at", null)
     .order("service_number");
 
-  const rows = (reconciliations ?? []) as ReconciliationRow[];
+  const rows = (reconciliations ?? []) as unknown as ReconciliationRow[];
   const sinNovedad = rows.filter((r) => isSinNovedad(r.novedad));
   const conNovedad = rows.filter((r) => !isSinNovedad(r.novedad));
   const sum = (list: { collection_amount: number }[]) =>
@@ -153,7 +156,7 @@ export async function GET(
   doc.moveDown(1);
 
   // ---------- Tabla de órdenes ----------
-  const orderCols = [30, 90, 90, 90, 90, 142];
+  const orderCols = [24, 76, 70, 68, 68, 76, 150];
   const headerHeight = 20;
   y = doc.y;
   drawGridRow(
@@ -164,9 +167,10 @@ export async function GET(
       { text: "Item", width: orderCols[0], bold: true, fontSize: 8 },
       { text: "Nro. Servicio", width: orderCols[1], bold: true, fontSize: 8 },
       { text: "Documento", width: orderCols[2], bold: true, fontSize: 8 },
-      { text: "Valor Recaudo", width: orderCols[3], bold: true, fontSize: 8 },
+      { text: "Fecha Recolección", width: orderCols[3], bold: true, fontSize: 8 },
       { text: "Fecha Servicio", width: orderCols[4], bold: true, fontSize: 8 },
-      { text: "Novedad", width: orderCols[5], bold: true, fontSize: 8 },
+      { text: "Valor Recaudo", width: orderCols[5], bold: true, fontSize: 8 },
+      { text: "Novedad", width: orderCols[6], bold: true, fontSize: 8 },
     ],
     headerHeight,
   );
@@ -186,9 +190,10 @@ export async function GET(
         { text: String(i + 1), width: orderCols[0], fontSize: 8 },
         { text: r.service_number, width: orderCols[1], fontSize: 8 },
         { text: r.client_document ?? "—", width: orderCols[2], fontSize: 8 },
-        { text: formatCurrency(r.collection_amount), width: orderCols[3], fontSize: 8 },
+        { text: formatDate(r.collection?.collection_date), width: orderCols[3], fontSize: 8 },
         { text: formatDate(r.service_date), width: orderCols[4], fontSize: 8 },
-        { text: r.novedad ?? "Sin novedad", width: orderCols[5], fontSize: 8 },
+        { text: formatCurrency(r.collection_amount), width: orderCols[5], fontSize: 8 },
+        { text: r.novedad ?? "Sin novedad", width: orderCols[6], fontSize: 8 },
       ],
       rowHeight,
     );

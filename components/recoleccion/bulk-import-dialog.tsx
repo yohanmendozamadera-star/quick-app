@@ -6,8 +6,9 @@ import { CheckCircle2, ClipboardPaste, Loader2, XCircle } from "lucide-react";
 import { parseBulkCollectionsText, BULK_COLUMN_LABELS, BULK_REQUIRED_LABELS } from "@/lib/collections/bulk-parse";
 import { bulkCreateCollections, type BulkImportResult } from "@/app/(app)/recoleccion/actions";
 import type { CatalogOption } from "@/lib/catalog/queries";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, getTodayBogota } from "@/lib/format";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -35,6 +36,7 @@ export function BulkImportDialog({
   const [step, setStep] = useState<Step>("input");
   const [clientId, setClientId] = useState("");
   const [cityId, setCityId] = useState("");
+  const [collectionDate, setCollectionDate] = useState(getTodayBogota());
   const [rawText, setRawText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<Extract<BulkImportResult, { success: true }> | null>(null);
@@ -42,8 +44,11 @@ export function BulkImportDialog({
   const cityName = cities.find((c) => c.id === cityId)?.name ?? "";
 
   const parsedRows = useMemo(
-    () => (rawText.trim() && cityId ? parseBulkCollectionsText(rawText, loadTypes, cityId, cityName) : []),
-    [rawText, loadTypes, cityId, cityName],
+    () =>
+      rawText.trim() && cityId && collectionDate
+        ? parseBulkCollectionsText(rawText, loadTypes, cityId, cityName, collectionDate)
+        : [],
+    [rawText, loadTypes, cityId, cityName, collectionDate],
   );
 
   const validRows = parsedRows.filter((r) => r.errors.length === 0);
@@ -54,6 +59,7 @@ export function BulkImportDialog({
     setStep("input");
     setClientId("");
     setCityId("");
+    setCollectionDate(getTodayBogota());
     setRawText("");
     setResult(null);
   };
@@ -65,7 +71,7 @@ export function BulkImportDialog({
 
   const handleLoad = async () => {
     setSubmitting(true);
-    const response = await bulkCreateCollections(clientId, cityId, rawText);
+    const response = await bulkCreateCollections(clientId, cityId, collectionDate, rawText);
     setSubmitting(false);
 
     if (!response.success) {
@@ -135,6 +141,20 @@ export function BulkImportDialog({
               <p className="text-xs text-muted-foreground">
                 El texto pegado no trae la ciudad, así que se asigna una sola vez aquí para todas las
                 filas.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="bulk-collection-date">Fecha de recolección (aplica a todo el lote) *</Label>
+              <Input
+                id="bulk-collection-date"
+                type="date"
+                value={collectionDate}
+                onChange={(e) => setCollectionDate(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                El día en que se recogieron estas guías — distinta de la fecha del servicio que trae cada
+                fila del texto pegado.
               </p>
             </div>
 
@@ -278,7 +298,7 @@ export function BulkImportDialog({
           {step === "input" && (
             <Button
               type="button"
-              disabled={!clientId || !cityId || validRows.length === 0}
+              disabled={!clientId || !cityId || !collectionDate || validRows.length === 0}
               onClick={() => setStep("preview")}
             >
               Ver vista previa

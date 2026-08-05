@@ -12,6 +12,7 @@ export type CollectionRow = {
   cedi_name: string | null;
   service_address: string | null;
   service_date: string;
+  collection_date: string | null;
   load_type_id: string | null;
   client_document: string | null;
   collection_amount: number;

@@ -4110,3 +4110,10 @@ drop index if exists public.uq_paz_salvo_documents_period;
 alter table public.paz_salvo_documents alter column cedi_code drop not null;
 create unique index uq_paz_salvo_documents_period
   on public.paz_salvo_documents (client_id, cedi_name, period) where deleted_at is null;
+-- =========================================================
+-- Recolección: nueva "Fecha de recolección" (aplica a todo el lote en la
+-- carga masiva, igual que Cliente/Ciudad), independiente de la Fecha del
+-- servicio que ya se pega por fila. Se usa en el Acta del Nodo para mostrar
+-- cuándo se recogió cada orden.
+-- =========================================================
+alter table public.collections add column collection_date date;

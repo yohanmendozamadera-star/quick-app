@@ -33,6 +33,7 @@ export type ParsedBulkRow = {
   client_name: string | null;
   city_input: string;
   city_id: string | null;
+  collection_date: string;
   cedi_code: string | null;
   cedi_name: string | null;
   service_address: string | null;
@@ -71,6 +72,7 @@ export function parseBulkCollectionsText(
   loadTypes: CatalogOption[],
   cityId: string,
   cityName: string,
+  collectionDate: string,
 ): ParsedBulkRow[] {
   const lines = text
     .split(/\r?\n/)
@@ -125,6 +127,7 @@ export function parseBulkCollectionsText(
       client_name: toNullable(clientNameRaw),
       city_input: cityName,
       city_id: cityId,
+      collection_date: collectionDate,
       cedi_code: null,
       cedi_name,
       service_address: toNullable(addressRaw),

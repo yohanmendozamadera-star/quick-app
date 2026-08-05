@@ -25,6 +25,7 @@ const INSERT_CHUNK_SIZE = 200;
 export async function bulkCreateCollections(
   clientId: string,
   cityId: string,
+  collectionDate: string,
   rawText: string,
 ): Promise<BulkImportResult> {
   const user = await getCurrentUser();
@@ -38,10 +39,13 @@ export async function bulkCreateCollections(
   if (!cityId) {
     return { success: false, message: "Selecciona la ciudad para este lote." };
   }
+  if (!collectionDate) {
+    return { success: false, message: "Selecciona la fecha de recolección para este lote." };
+  }
 
   const [loadTypes, cities] = await Promise.all([getLoadTypes(), getVisibleCities()]);
   const cityName = cities.find((c) => c.id === cityId)?.name ?? "";
-  const parsedRows = parseBulkCollectionsText(rawText, loadTypes, cityId, cityName);
+  const parsedRows = parseBulkCollectionsText(rawText, loadTypes, cityId, cityName, collectionDate);
 
   if (parsedRows.length === 0) {
     return { success: false, message: "No se encontró ningún dato para importar." };
@@ -97,6 +101,7 @@ export async function bulkCreateCollections(
         service_number: row.service_number,
         client_name: row.client_name,
         city_id: row.city_id,
+        collection_date: row.collection_date,
         cedi_code: row.cedi_code,
         cedi_name: row.cedi_name,
         service_address: row.service_address,
