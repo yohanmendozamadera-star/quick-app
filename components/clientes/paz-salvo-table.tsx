@@ -1,13 +1,15 @@
 "use client";
 
 import { Fragment, useState } from "react";
-import { ChevronDown, ChevronRight, FileText, CheckCircle2, Lock } from "lucide-react";
+import { toast } from "sonner";
+import { ChevronDown, ChevronRight, FileText, CheckCircle2, Loader2, Lock } from "lucide-react";
 import { formatDateTime } from "@/lib/format";
 import type { PazSalvoPeriodRow } from "@/lib/paz-salvo/types";
 import type { CatalogOption } from "@/lib/catalog/queries";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { PazSalvoUploadDialog } from "@/components/clientes/paz-salvo-upload-dialog";
+import { getPazSalvoDocumentUrl } from "@/app/(app)/clientes/[clientId]/paz-y-salvos/actions";
 import { cn } from "@/lib/utils";
 
 const monthFormatter = new Intl.DateTimeFormat("es-CO", { month: "long", year: "numeric" });
@@ -41,6 +43,19 @@ export function PazSalvoTable({
 }) {
   const [expandedPeriods, setExpandedPeriods] = useState<Set<string>>(new Set());
   const [expandedCities, setExpandedCities] = useState<Set<string>>(new Set());
+  const [downloadingPath, setDownloadingPath] = useState<string | null>(null);
+
+  const handleDownload = async (storagePath: string) => {
+    setDownloadingPath(storagePath);
+    const url = await getPazSalvoDocumentUrl(storagePath);
+    setDownloadingPath(null);
+
+    if (!url) {
+      toast.error("No se pudo obtener el documento firmado");
+      return;
+    }
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
 
   const togglePeriod = (period: string) => {
     setExpandedPeriods((prev) => {
@@ -168,9 +183,20 @@ export function PazSalvoTable({
                                         documentType="paz_y_salvo"
                                       />
                                       {cedi.document && (
-                                        <span title={`Firmado el ${formatDateTime(cedi.document.uploadedAt)}`}>
-                                          <CheckCircle2 className="size-4 text-emerald-600" />
-                                        </span>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleDownload(cedi.document!.storagePath)}
+                                          disabled={downloadingPath === cedi.document.storagePath}
+                                          title={`Descargar — firmado el ${formatDateTime(cedi.document.uploadedAt)}`}
+                                          aria-label="Descargar documento firmado"
+                                          className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }))}
+                                        >
+                                          {downloadingPath === cedi.document.storagePath ? (
+                                            <Loader2 className="size-4 animate-spin text-emerald-600" />
+                                          ) : (
+                                            <CheckCircle2 className="size-4 text-emerald-600" />
+                                          )}
+                                        </button>
                                       )}
                                     </div>
                                   ) : (
