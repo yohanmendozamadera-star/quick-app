@@ -9,6 +9,16 @@ export type ActionResult = { success: true } | { success: false; message: string
 
 const MAX_BYTES = 10 * 1024 * 1024;
 
+// Los nombres de CEDI son texto libre y a veces traen una "/" (ej. abreviaturas
+// como "B/quilla"). Una "/" real dentro del nombre crearía una subcarpeta no
+// intencional en el bucket, y percent-encodearla (encodeURIComponent) tampoco
+// sirve: Supabase Storage decodifica %2F al guardar pero el valor que se
+// guarda en storage_path queda sin decodificar, y termina sin coincidir con
+// el archivo real. Se reemplaza por un guion, sin percent-encoding.
+function sanitizeForStorageKey(value: string) {
+  return value.trim().replace(/[\\/]+/g, "-");
+}
+
 export async function uploadPazSalvoDocument(
   clientId: string,
   cityId: string,
@@ -34,7 +44,7 @@ export async function uploadPazSalvoDocument(
   }
 
   const supabase = await createClient();
-  const path = `${encodeURIComponent(cediName)}/${period}/${crypto.randomUUID()}-${file.name}`;
+  const path = `${sanitizeForStorageKey(cediName)}/${period}/${crypto.randomUUID()}-${file.name}`;
 
   const { error: uploadError } = await supabase.storage
     .from("paz-salvo")
