@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAllClients, getAllCities } from "@/lib/catalog/queries";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { getQuickLogoBuffer } from "@/lib/pdf/logo";
+import { drawGridRow } from "@/lib/pdf/grid";
 
 type ReconciliationRow = {
   service_number: string;
@@ -24,22 +25,6 @@ const BLACK = "#000000";
 function isSinNovedad(novedad: string | null) {
   const normalized = (novedad ?? "").trim().toLowerCase();
   return normalized === "" || normalized === "sin novedad";
-}
-
-type Cell = { text: string; width: number; bold?: boolean; fontSize?: number };
-
-/** Dibuja una fila de celdas con borde completo (estilo tabla de Word), altura fija. */
-function drawGridRow(doc: PDFKit.PDFDocument, x: number, y: number, cells: Cell[], rowHeight: number) {
-  let cellX = x;
-  for (const cell of cells) {
-    doc.lineWidth(0.75).rect(cellX, y, cell.width, rowHeight).stroke(BLACK);
-    doc
-      .font(cell.bold ? "Helvetica-Bold" : "Helvetica")
-      .fontSize(cell.fontSize ?? 9)
-      .fillColor(BLACK)
-      .text(cell.text, cellX + 4, y + rowHeight / 2 - 4.5, { width: cell.width - 8 });
-    cellX += cell.width;
-  }
 }
 
 export async function GET(

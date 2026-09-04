@@ -1,21 +1,30 @@
 import PDFDocument from "pdfkit";
 import { getCurrentUser, can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
-import { getAllCities } from "@/lib/catalog/queries";
-import { getTodayBogota } from "@/lib/format";
-import { getQuickLogoBuffer } from "@/lib/pdf/logo";
+import { getAllClients, getAllCities } from "@/lib/catalog/queries";
+import { getTodayBogota, formatDate } from "@/lib/format";
+import { getSignatureBuffer, getColsubsidioLogoBuffer } from "@/lib/pdf/logo";
+import { drawGridRow } from "@/lib/pdf/grid";
 
 const PAGE_WIDTH = 612;
-const MARGIN = 50;
+const MARGIN = 45;
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
 const BLACK = "#000000";
-const MUTED = "#4b5563";
 
 function monthEndIso(period: string) {
   const date = new Date(`${period}T00:00:00Z`);
   date.setUTCMonth(date.getUTCMonth() + 1);
   date.setUTCDate(date.getUTCDate() - 1);
   return date.toISOString().slice(0, 10);
+}
+
+/** "31 de agosto de 2026" — el formato de corte que pidió el usuario, siempre con día + mes + año completos. */
+function formatCorte(isoDate: string) {
+  const date = new Date(`${isoDate}T00:00:00`);
+  const day = date.getDate();
+  const month = new Intl.DateTimeFormat("es-CO", { month: "long" }).format(date);
+  const year = date.getFullYear();
+  return `${day} de ${month} de ${year}`;
 }
 
 export async function GET(
@@ -37,10 +46,13 @@ export async function GET(
     return new Response("Parámetros incompletos", { status: 400 });
   }
 
-  const cities = await getAllCities();
+  const [clients, cities] = await Promise.all([getAllClients(), getAllCities()]);
+  const clientName = clients.find((c) => c.id === clientId)?.name ?? "Cliente";
   const cityName = cities.find((c) => c.id === cityId)?.name ?? "Ciudad";
+  const isColsubsidio = clientName.trim().toLowerCase().includes("colsubsidio");
 
   const supabase = await createClient();
+  const monthStart = period;
   const monthEnd = monthEndIso(period);
 
   const { count: pendingCount } = await supabase
@@ -50,7 +62,7 @@ export async function GET(
     .eq("city_id", cityId)
     .eq("cedi_name", cediName)
     .eq("reconciliation_status", "no_conciliado")
-    .gte("service_date", period)
+    .gte("service_date", monthStart)
     .lte("service_date", monthEnd)
     .is("deleted_at", null);
 
@@ -61,13 +73,9 @@ export async function GET(
     );
   }
 
-  const periodLabel = new Intl.DateTimeFormat("es-CO", { month: "long", year: "numeric" }).format(
-    new Date(`${period}T00:00:00`),
-  );
-
-  const today = new Date(`${getTodayBogota()}T00:00:00`);
-  const todayMonthName = new Intl.DateTimeFormat("es-CO", { month: "long" }).format(today);
-  const dateLine = `${cityName} ${today.getDate()} de ${todayMonthName} de ${today.getFullYear()}`;
+  const monthName = new Intl.DateTimeFormat("es-CO", { month: "long" }).format(new Date(`${monthStart}T00:00:00`));
+  const corteLabel = formatCorte(monthEnd);
+  const today = getTodayBogota();
 
   const doc = new PDFDocument({ margin: MARGIN, size: "letter" });
   const chunks: Buffer[] = [];
@@ -76,92 +84,120 @@ export async function GET(
     doc.on("end", () => resolve(Buffer.concat(chunks)));
   });
 
-  // ---------- Encabezado: fecha (izq.) y datos de la empresa (der.) ----------
-  const headerY = MARGIN;
-  doc.font("Helvetica").fontSize(11).fillColor(BLACK).text(dateLine, MARGIN, headerY, { width: 260 });
+  // ---------- Encabezado ----------
+  let y = MARGIN;
+  if (isColsubsidio) {
+    doc.image(getColsubsidioLogoBuffer(), MARGIN, y, { width: 90 });
+  } else {
+    doc.font("Helvetica-Bold").fontSize(12).fillColor(BLACK).text(clientName.toUpperCase(), MARGIN, y);
+  }
+  y += 34;
 
-  doc.image(getQuickLogoBuffer(), PAGE_WIDTH - MARGIN - 40, headerY - 4, { width: 40, height: 40 });
-  doc
-    .font("Helvetica-Oblique")
-    .fontSize(8)
-    .fillColor(MUTED)
-    .text("Transversal 93 N 51-98 Bodega 24-25", MARGIN + 260, headerY + 40, { width: 210, align: "right" })
-    .text("Complejo empresarial Puertas del sol", MARGIN + 260, headerY + 51, { width: 210, align: "right" })
-    .text("Quick Help SAS Nit: 830124778-5", MARGIN + 260, headerY + 62, { width: 210, align: "right" });
+  doc.font("Helvetica-Bold").fontSize(13).fillColor(BLACK).text("ACTA DE REUNIÓN VISITA OPL A NODO", MARGIN, y, {
+    width: CONTENT_WIDTH,
+    align: "center",
+  });
+  doc.moveDown(0.3);
+  doc.font("Helvetica-Bold").fontSize(10).text(clientName.toUpperCase(), MARGIN, doc.y, {
+    width: CONTENT_WIDTH,
+    align: "center",
+  });
+  y = doc.y + 18;
 
-  doc.fillColor(BLACK);
-  doc.y = headerY + 90;
+  // ---------- Tabla de datos de la reunión ----------
+  const fullRowHeight = 22;
+  drawGridRow(doc, MARGIN, y, [{ text: `REFERENCIA: PROYECTO ${clientName.toUpperCase()}`, width: CONTENT_WIDTH, bold: true }], fullRowHeight);
+  y += fullRowHeight;
+
+  const halfWidth = CONTENT_WIDTH / 2;
+  drawGridRow(
+    doc,
+    MARGIN,
+    y,
+    [
+      { text: `FECHA: ${formatDate(today)}`, width: halfWidth },
+      { text: `ACTIVIDAD: Paz y Salvo Corte ${corteLabel}`, width: halfWidth },
+    ],
+    fullRowHeight,
+  );
+  y += fullRowHeight;
+
+  // Ancho completo: el nombre del CEDI es texto libre y puede ser largo — a
+  // media columna se desborda de la celda con nombres como "DROGUERIA MIXTA
+  // PARQUE ALEGRA".
+  drawGridRow(doc, MARGIN, y, [{ text: `MODERADOR: NODO ${cediName}`, width: CONTENT_WIDTH }], fullRowHeight);
+  y += fullRowHeight + 18;
+  doc.y = y;
   doc.x = MARGIN;
 
-  // ---------- Cuerpo de la carta ----------
-  doc.moveDown(1.5);
-  doc.font("Helvetica-Bold").fontSize(11).text("Señores", MARGIN, doc.y);
-  doc.moveDown(1);
-  doc.font("Helvetica-Bold").fontSize(11).text(cediName, MARGIN, doc.y);
+  // ---------- Agenda ----------
+  doc.font("Helvetica-Bold").fontSize(10.5).fillColor(BLACK).text("AGENDA", MARGIN, doc.y);
+  doc.moveDown(0.4);
+  doc.font("Helvetica").fontSize(10).text(`1. Paz y salvo correspondiente a corte ${corteLabel}`, MARGIN, doc.y, {
+    width: CONTENT_WIDTH,
+  });
   doc.moveDown(1);
 
-  doc.font("Helvetica").fontSize(10.5).text(
-    "Por medio de la presente se deja constancia de que la operación ",
+  // ---------- Desarrollo de la agenda ----------
+  doc.font("Helvetica-Bold").fontSize(10.5).text("DESARROLLO DE LA AGENDA", MARGIN, doc.y);
+  doc.moveDown(0.4);
+  doc.font("Helvetica").fontSize(10).text(
+    `Esta droguería confirma el retorno de las órdenes entregadas al equipo Quick correspondientes a los domicilios despachados del mes de ${monthName} del año en curso (1 de ${monthName} al ${corteLabel.split(" de ")[0]} de ${monthName}).`,
     MARGIN,
     doc.y,
-    { width: CONTENT_WIDTH, continued: true },
+    { width: CONTENT_WIDTH, align: "justify" },
   );
-  doc.font("Helvetica-Bold").text("CROSS DOCKING", { continued: true });
-  doc.font("Helvetica").text(" se encuentra a ", { continued: true });
-  doc.font("Helvetica-Bold").text(`paz y salvo correspondiente al mes de ${periodLabel}`, { continued: true });
+  doc.moveDown(0.6);
+  doc.text(
+    "Así mismo confirma las respectivas consignaciones correspondientes a los valores de domicilios y copagos.",
+    MARGIN,
+    doc.y,
+    { width: CONTENT_WIDTH, align: "justify" },
+  );
+  doc.moveDown(1.5);
+
+  // ---------- Firmas ----------
+  doc.font("Helvetica-Bold").fontSize(10.5).text("EN CONSTANCIA DE LO ANTERIOR FIRMAN:", MARGIN, doc.y);
+  doc.moveDown(0.6);
+
+  const signHeaderHeight = 20;
+  y = doc.y;
+  drawGridRow(
+    doc,
+    MARGIN,
+    y,
+    [
+      { text: "OPERADOR QUICK", width: halfWidth, bold: true },
+      { text: clientName.toUpperCase(), width: halfWidth, bold: true },
+    ],
+    signHeaderHeight,
+  );
+  y += signHeaderHeight;
+
+  const signBoxHeight = 70;
+  drawGridRow(doc, MARGIN, y, [{ text: "", width: halfWidth }, { text: "", width: halfWidth }], signBoxHeight);
+
+  // Firma de Yohan Mendoza dentro de la celda "OPERADOR QUICK".
+  doc.image(getSignatureBuffer(), MARGIN + 14, y + 10, { width: halfWidth - 60 });
+  doc.font("Helvetica").fontSize(9).fillColor(BLACK).text("Yohan Mendoza", MARGIN + 10, y + signBoxHeight - 16, {
+    width: halfWidth - 20,
+  });
   doc
     .font("Helvetica")
-    .text(
-      ", en lo relacionado con las consignaciones efectuadas por concepto de recaudos de cuotas moderadoras y/o domicilios.",
-    );
-
-  doc.moveDown(1);
-  doc.font("Helvetica").fontSize(10.5).text(
-    "De igual manera, se certifica el retorno oportuno de tirillas, soportes y demás papelería correspondiente, " +
-      "así como la gestión de devoluciones de paquetes generadas durante la operación de distribución del punto ",
-    MARGIN,
-    doc.y,
-    { width: CONTENT_WIDTH, continued: true },
-  );
-  doc.font("Helvetica-Bold").text(cediName);
-
-  doc.moveDown(4);
-  doc.font("Helvetica").fontSize(10.5).text("Cordialmente", MARGIN, doc.y);
-  doc.moveDown(1);
-  doc.text("Coordinador", MARGIN, doc.y);
-
-  // ---------- Bloque de firmas ----------
-  doc.moveDown(4);
-  const signY = doc.y;
-  const colWidth = CONTENT_WIDTH / 2 - 10;
-
-  doc.font("Helvetica-Bold").fontSize(10).text("ENTREGA", MARGIN, signY, { continued: true });
-  doc.font("Helvetica").text("_____________________________________");
-  doc.font("Helvetica-Bold").text("RECIBE", MARGIN + colWidth + 20, signY, { continued: true });
-  doc.font("Helvetica").text("____________________");
-
-  const signLabelY = signY + 16;
-  doc
-    .font("Helvetica-Bold")
     .fontSize(9)
-    .text("Coordinador Operación Quick", MARGIN, signLabelY, { width: colWidth });
-  doc
-    .font("Helvetica-Bold")
-    .fontSize(9)
-    .text("/Representante Punto Atención", MARGIN + colWidth + 20, signLabelY, { width: colWidth });
+    .text("Nombre:", MARGIN + halfWidth + 10, y + signBoxHeight - 16, { width: halfWidth - 20 });
+
+  y += signBoxHeight;
+  doc.y = y + 20;
+  doc.x = MARGIN;
 
   // ---------- Pie de página ----------
-  const footerY = 700;
-  doc.image(getQuickLogoBuffer(), MARGIN, footerY - 4, { width: 26, height: 26 });
-  doc
-    .font("Helvetica")
-    .fontSize(9)
-    .fillColor(MUTED)
-    .text("La forma más fácil de hacer tu Logística — supply · express · clean · global", MARGIN + 34, footerY + 3);
-  doc
-    .font("Helvetica")
-    .fontSize(8)
-    .text("Tel: (+57) 747 0547 · Correo: sac@quick.com.co · www.quick.com.co", MARGIN, footerY + 26);
+  // y=700 deja margen de sobra bajo el margen inferior de la página (792-45=747);
+  // 740 quedaba a menos de una línea de ese límite y disparaba una página en blanco.
+  doc.font("Helvetica").fontSize(8).fillColor("#6b7280").text("Página 1 de 1", MARGIN, 700, {
+    width: CONTENT_WIDTH,
+    align: "center",
+  });
 
   doc.end();
   const buffer = await donePromise;
@@ -170,7 +206,7 @@ export async function GET(
     headers: {
       "Content-Type": "application/pdf",
       "Cache-Control": "no-store",
-      "Content-Disposition": `attachment; filename="paz_y_salvo_${period}.pdf"`,
+      "Content-Disposition": `attachment; filename="paz_y_salvo_${cityName}_${period}.pdf"`,
     },
   });
 }
