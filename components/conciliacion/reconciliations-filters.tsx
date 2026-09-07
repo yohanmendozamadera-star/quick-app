@@ -60,8 +60,20 @@ export function ReconciliationsFilters({
 
   const hasFilters = Array.from(searchParams.keys()).some((k) => k !== "sort" && k !== "dir" && k !== "pageSize");
 
-  const dateFromValue = searchParams.has("cfrom") ? (searchParams.get("cfrom") ?? "") : getTodayBogota();
-  const dateToValue = searchParams.has("cto") ? (searchParams.get("cto") ?? "") : getTodayBogota();
+  // Si hay una búsqueda activa y las fechas no se tocaron a propósito, la
+  // vista no aplica el límite de "hoy" (ver app/(app)/conciliacion/page.tsx)
+  // — los campos se muestran vacíos para reflejar eso, no "hoy".
+  const searchActive = Boolean(search.trim());
+  const dateFromValue = searchParams.has("cfrom")
+    ? (searchParams.get("cfrom") ?? "")
+    : searchActive
+      ? ""
+      : getTodayBogota();
+  const dateToValue = searchParams.has("cto")
+    ? (searchParams.get("cto") ?? "")
+    : searchActive
+      ? ""
+      : getTodayBogota();
 
   // Recuerda los filtros actuales para que, si vas a otro módulo y regresas
   // por el menú, se restauren en vez de reiniciar a los valores por defecto.

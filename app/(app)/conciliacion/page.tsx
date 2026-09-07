@@ -51,14 +51,21 @@ export default async function ConciliacionPage({
     direction: str(sp, "dir") === "asc" ? "asc" : "desc",
   };
 
+  const search = str(sp, "q");
+
   // "Fecha de conciliación" desde/hasta parte de hoy por defecto (cuándo se
   // cargó el archivo, no la fecha de servicio). Si se dejan vacías a
-  // propósito (?cfrom=/?cto=), quedan sin límite.
-  const dateFrom = "cfrom" in sp ? str(sp, "cfrom") || undefined : getTodayBogota();
-  const dateTo = "cto" in sp ? str(sp, "cto") || undefined : getTodayBogota();
+  // propósito (?cfrom=/?cto=), quedan sin límite. Excepción: si hay un
+  // término de búsqueda y el usuario no tocó las fechas, no se aplica el
+  // límite de "hoy" — buscar un código/documento no debería depender de
+  // cuándo se conciliació, así que la búsqueda manda.
+  const searchActive = Boolean(search?.trim());
+  const dateFrom =
+    "cfrom" in sp ? str(sp, "cfrom") || undefined : searchActive ? undefined : getTodayBogota();
+  const dateTo = "cto" in sp ? str(sp, "cto") || undefined : searchActive ? undefined : getTodayBogota();
 
   const filters = {
-    search: str(sp, "q"),
+    search,
     dateFrom,
     dateTo,
     clientId: str(sp, "client"),
