@@ -9,6 +9,7 @@ export const reconciliationFormSchema = z.object({
   cedi_name: z.string().optional(),
   service_address: z.string().optional(),
   service_date: z.string().optional(),
+  reconciliation_date: z.iso.date("La fecha de conciliación debe ser una fecha válida").optional(),
   load_type_id: z.string().optional(),
   client_document: z.string().optional(),
   collection_amount: z.coerce
@@ -38,3 +39,4 @@ export function normalizeReconciliationInput(values: ReconciliationFormOutput) {
     client_document: emptyToNull(values.client_document),
   };
 }
+

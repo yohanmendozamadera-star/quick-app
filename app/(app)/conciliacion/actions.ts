@@ -90,6 +90,7 @@ export async function updateReconciliation(id: string, input: unknown): Promise<
 
   revalidatePath("/conciliacion");
   revalidatePath("/recoleccion");
+  revalidatePath("/clientes", "layout");
   return { success: true, matched: status === "matched" };
 }
 
@@ -287,3 +288,4 @@ export async function bulkCreateReconciliations(
     })),
   };
 }
+

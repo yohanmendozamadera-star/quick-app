@@ -42,6 +42,7 @@ function toFormValues(reconciliation?: ReconciliationRow): ReconciliationFormVal
     cedi_name: reconciliation?.cedi_name ?? "",
     service_address: reconciliation?.service_address ?? "",
     service_date: reconciliation?.service_date ?? "",
+    reconciliation_date: reconciliation?.reconciliation_date,
     load_type_id: reconciliation?.load_type_id ?? "",
     client_document: reconciliation?.client_document ?? "",
     collection_amount: reconciliation?.collection_amount ?? 0,
@@ -134,6 +135,15 @@ export function ReconciliationFormDialog({ clients, cities, loadTypes, reconcili
               <Input id="service_date" type="date" {...register("service_date")} />
             </div>
 
+            {isEdit && (
+              <div className="space-y-1.5">
+                <Label htmlFor="reconciliation_date">Fecha de conciliación *</Label>
+                <Input id="reconciliation_date" type="date" {...register("reconciliation_date")} />
+                {errors.reconciliation_date && (
+                  <p className="text-sm text-destructive">{errors.reconciliation_date.message}</p>
+                )}
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label htmlFor="client_id">Cliente *</Label>
               <select
@@ -237,3 +247,4 @@ export function ReconciliationFormDialog({ clients, cities, loadTypes, reconcili
     </Dialog>
   );
 }
+
