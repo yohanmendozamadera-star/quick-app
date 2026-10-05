@@ -4,7 +4,7 @@ import { formatCurrency, formatDate } from "@/lib/format";
 import type { RecaudoRow } from "@/lib/recaudos/types";
 import { RecaudoPhotoDialog } from "./recaudo-photo-dialog";
 
-export function RecaudosTable({ clientId, rows, canUpload }: { clientId: string; rows: RecaudoRow[]; canUpload: boolean }) {
+export function RecaudosTable({ clientId, rows, canUpload, canExport }: { clientId: string; rows: RecaudoRow[]; canUpload: boolean; canExport: boolean }) {
   const dates = new Map<string, Map<string, RecaudoRow[]>>();
   for (const row of rows) {
     const cities = dates.get(row.date) ?? new Map<string, RecaudoRow[]>();
@@ -34,12 +34,13 @@ export function RecaudosTable({ clientId, rows, canUpload }: { clientId: string;
               <th className="px-3 py-2">Droguería</th>
               <th className="px-3 py-2 text-right">Guías sin novedad</th>
               <th className="px-3 py-2 text-right">Total recaudado</th>
-              <th className="px-3 py-2">Consignación</th>
+              <th className="px-3 py-2">Detalle</th><th className="px-3 py-2">Consignación</th>
             </tr></thead>
             <tbody>{items.map(row => <tr key={row.cediName} className="border-b last:border-0">
               <td className="px-3 py-3 font-medium">{row.cediName || "Sin droguería"}</td>
               <td className="px-3 py-3 text-right">{Number(row.guideCount).toLocaleString("es-CO")}</td>
               <td className="whitespace-nowrap px-3 py-3 text-right">{formatCurrency(Number(row.amount))}</td>
+              <td className="px-3 py-3">{canExport && <a className="inline-flex whitespace-nowrap rounded-md border px-3 py-2 text-sm hover:bg-muted" href={`/clientes/${clientId}/recaudos/detalle?${new URLSearchParams({date:row.date,city:row.cityId ?? "",cedi:row.cediName})}`}>Descargar detalle</a>}</td>
               <td className="px-3 py-3"><RecaudoPhotoDialog clientId={clientId} row={row} canUpload={canUpload} /></td>
             </tr>)}</tbody>
           </table>
@@ -48,3 +49,4 @@ export function RecaudosTable({ clientId, rows, canUpload }: { clientId: string;
     </section>)}
   </div>;
 }
+

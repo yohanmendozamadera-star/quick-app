@@ -37,6 +37,7 @@ export default async function RecaudosPage({ params, searchParams }: {
     {result.error ? <Alert variant="destructive">
       <AlertTitle>No se pudieron cargar los recaudos</AlertTitle>
       <AlertDescription>{result.error.message}</AlertDescription>
-    </Alert> : <RecaudosTable clientId={clientId} rows={result.rows} canUpload={can(user.permissions,"conciliacion.edit")} />}
+    </Alert> : <RecaudosTable clientId={clientId} rows={result.rows} canUpload={can(user.permissions,"conciliacion.edit")} canExport={can(user.permissions,"conciliacion.export")} />}
   </div>;
 }
+
