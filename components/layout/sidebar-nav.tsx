@@ -15,6 +15,7 @@ function conciliacionChildren(clients: CatalogOption[]): NavGroup[] {
     children: [
       { href: `/conciliacion?client=${client.id}`, label: "Conciliaciones" },
       { href: `/clientes/${client.id}/consolidado`, label: "Consolidado" },
+      { href: `/clientes/${client.id}/recaudos`, label: "Recaudos" },
       { href: `/clientes/${client.id}/paz-y-salvos`, label: "Paz y Salvos" },
     ],
   }));
